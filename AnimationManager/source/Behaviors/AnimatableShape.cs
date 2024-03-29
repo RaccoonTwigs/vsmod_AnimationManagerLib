@@ -1,4 +1,5 @@
-﻿using System;
+﻿using AnimationManagerLib.Integration;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -149,10 +150,12 @@ public sealed class AnimatableShape : ITexPositionSource, IDisposable
 
         AnimatorBase animator;
 
+        var manager = clientApi.ModLoader.GetModSystem<AnimationManagerLibSystem>().AnimationManager;
+
         if (animationCache.TryGetValue(cacheDictKey, out AnimCacheEntry? cacheObj))
         {
             animator = clientApi.Side == EnumAppSide.Client ?
-                new ClientAnimator(() => 1, cacheObj.RootPoses, cacheObj.Animations, cacheObj.RootElems, blockShape.JointsById) :
+                new ProceduralClientAnimator(manager , () => 1, cacheObj.RootPoses, cacheObj.Animations, cacheObj.RootElems, blockShape.JointsById) :
                 new ServerAnimator(() => 1, cacheObj.RootPoses, cacheObj.Animations, cacheObj.RootElems, blockShape.JointsById)
             ;
         }
@@ -164,7 +167,7 @@ public sealed class AnimatableShape : ITexPositionSource, IDisposable
             }
 
             animator = clientApi.Side == EnumAppSide.Client ?
-                new ClientAnimator(() => 1, blockShape.Animations, blockShape.Elements, blockShape.JointsById) :
+                new ProceduralClientAnimator(manager , () => 1, blockShape.Animations, blockShape.Elements, blockShape.JointsById) :
                 new ServerAnimator(() => 1, blockShape.Animations, blockShape.Elements, blockShape.JointsById)
             ;
 

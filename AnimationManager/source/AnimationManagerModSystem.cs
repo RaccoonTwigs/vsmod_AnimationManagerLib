@@ -1,10 +1,15 @@
-﻿using System;
+﻿using AnimationManagerLib.Integration;
+using HarmonyLib;
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Server;
 using Vintagestory.Client.NoObf;
+using Vintagestory.GameContent;
 
 namespace AnimationManagerLib;
 
@@ -16,6 +21,9 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
     internal delegate void OnBeforeRenderCallback(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt);
     internal IShaderProgram? AnimatedItemShaderProgram => mShaderProgram;
     internal IShaderProgram? AnimatedItemShaderProgramFirstPerson => mShaderProgramFirstPerson;
+    internal AnimationManager? AnimationManager => mManager;
+
+
     internal event OnBeforeRenderCallback? OnHeldItemBeforeRender;
 
     private ICoreAPI? mApi;
@@ -56,6 +64,8 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
         );
 
         mCameraSettingsManager = new(api);
+
+        PatchManagersReplacer();
     }
     public override void StartServerSide(ICoreServerAPI api)
     {
@@ -131,7 +141,40 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
             UnregisterHandlers(mManager);
             Patches.AnimatorPatch.Unpatch(HarmonyID);
             Patches.AnimatorPatch.SuppressedAnimations.Clear();
+            UnpatchManagersReplacer();
         }
         base.Dispose();
+    }
+
+    private void PatchManagersReplacer()
+    {
+        new Harmony(HarmonyID).Patch(
+                typeof(EntityPlayer).GetMethod("Initialize", AccessTools.all),
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimationManagerLibSystem), nameof(ReplaceAnimationManagers)))
+            );
+
+        _manager = mManager;
+        _coreClientAPI = mApi as ICoreClientAPI;
+    }
+    private void UnpatchManagersReplacer()
+    {
+        new Harmony(HarmonyID).Unpatch(typeof(EntityPlayer).GetMethod("Initialize", AccessTools.all), HarmonyPatchType.Prefix, HarmonyID);
+    }
+
+    private static readonly FieldInfo? _animManager = typeof(Vintagestory.API.Common.EntityPlayer).GetField("animManager", BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly FieldInfo? _selfFpAnimManager = typeof(Vintagestory.API.Common.EntityPlayer).GetField("selfFpAnimManager", BindingFlags.NonPublic | BindingFlags.Instance);
+
+    private static AnimationManager _manager;
+    private static ICoreClientAPI _coreClientAPI;
+    private static void ReplaceAnimationManagers(EntityPlayer __instance)
+    {
+        Vintagestory.API.Common.AnimationManager animManager = (Vintagestory.API.Common.AnimationManager)_animManager.GetValue(__instance);
+        ProceduralAnimationManager animManagerReplacer = new(_manager, _coreClientAPI, animManager);
+        animManagerReplacer.UseFpAnmations = false;
+        _animManager.SetValue(__instance, animManagerReplacer);
+
+        Vintagestory.API.Common.AnimationManager selfFpAnimManager = (Vintagestory.API.Common.AnimationManager)_selfFpAnimManager.GetValue(__instance);
+        ProceduralAnimationManager selfFpAnimManagerReplacer = new(_manager, _coreClientAPI, selfFpAnimManager);
+        _selfFpAnimManager.SetValue(__instance, selfFpAnimManagerReplacer);
     }
 }
