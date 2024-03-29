@@ -26,9 +26,11 @@ internal static class AnimatorPatch
 
     public static HashSet<string> SuppressedAnimations { get; } = new();
 
+    private static readonly FieldInfo? _managerEntity = typeof(Vintagestory.API.Common.AnimationManager).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
+
     public static void Patch(string harmonyId)
     {
-        new Harmony(harmonyId).Patch(
+        /*new Harmony(harmonyId).Patch(
                 AccessTools.Method(typeof(Vintagestory.API.Common.AnimationManager), nameof(Vintagestory.API.Common.AnimationManager.OnClientFrame)),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(OnFrame)))
             );
@@ -45,29 +47,27 @@ internal static class AnimatorPatch
                 typeof(int)
             }),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(CalculateMatrices)))
-            );
+            );*/
 
         new Harmony(harmonyId).Patch(
                 typeof(EntityShapeRenderer).GetMethod("RenderHeldItem", AccessTools.all),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderHeldItem)))
             );
 
-        new Harmony(harmonyId).Patch(
+        /*new Harmony(harmonyId).Patch(
                 typeof(EntityPlayer).GetMethod("updateEyeHeight", AccessTools.all),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(EyeHightController), nameof(EyeHightController.UpdateEyeHeight)))
-            );
+            );*/ // @TODO turned off to test performance
 
-        new Harmony(harmonyId).Patch(
+        /*new Harmony(harmonyId).Patch(
                 typeof(EntityPlayerShapeRenderer).GetMethod("loadModelMatrixForPlayer", AccessTools.all),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(PlayerModelMatrixController), nameof(PlayerModelMatrixController.LoadModelMatrixForPlayer)))
-            );
-
-        
+            );*/ // @TODO turned off to test performance
     }
 
     public static void Unpatch(string harmonyId)
     {
-        new Harmony(harmonyId).Unpatch(typeof(ClientAnimator).GetMethod("calculateMatrices", AccessTools.all, new Type[] {
+        /*new Harmony(harmonyId).Unpatch(typeof(ClientAnimator).GetMethod("calculateMatrices", AccessTools.all, new Type[] {
                 typeof(int),
                 typeof(float),
                 typeof(List<ElementPose>),
@@ -76,23 +76,16 @@ internal static class AnimatorPatch
                 typeof(List<ElementPose>[]),
                 typeof(List<ElementPose>[]),
                 typeof(int)
-            }), HarmonyPatchType.Prefix, harmonyId);
+            }), HarmonyPatchType.Prefix, harmonyId);*/
         new Harmony(harmonyId).Unpatch(typeof(EntityShapeRenderer).GetMethod("RenderHeldItem", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
-        new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("updateEyeHeight", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
-        new Harmony(harmonyId).Unpatch(AccessTools.Method(typeof(Vintagestory.API.Common.AnimationManager), nameof(Vintagestory.API.Common.AnimationManager.OnClientFrame)), HarmonyPatchType.Prefix, harmonyId);
-        new Harmony(harmonyId).Unpatch(typeof(EntityPlayerShapeRenderer).GetMethod("loadModelMatrixForPlayer", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
+        //new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("updateEyeHeight", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
+        //new Harmony(harmonyId).Unpatch(AccessTools.Method(typeof(Vintagestory.API.Common.AnimationManager), nameof(Vintagestory.API.Common.AnimationManager.OnClientFrame)), HarmonyPatchType.Prefix, harmonyId);
+        //new Harmony(harmonyId).Unpatch(typeof(EntityPlayerShapeRenderer).GetMethod("loadModelMatrixForPlayer", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
     }
 
     public static void OnFrame(Vintagestory.API.Common.AnimationManager __instance, float dt)
     {
-        Entity? entity = (Entity?)typeof(Vintagestory.API.Common.AnimationManager)
-                                          .GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance)
-                                          ?.GetValue(__instance);
-
-        foreach (string code in __instance.ActiveAnimationsByAnimCode.Select(entry => entry.Key).Where(SuppressedAnimations.Contains))
-        {
-            __instance.StopAnimation(code);
-        }
+        Entity? entity = (Entity?)_managerEntity?.GetValue(__instance);
 
         if (entity != null)
         {
@@ -113,11 +106,14 @@ internal static class AnimatorPatch
         if (!isShadowPass && right)
         {
             ItemSlot? slot = (__instance.entity as EntityPlayer)?.RightHandItemSlot;
+
+            if (slot?.Itemstack?.Item == null) return true;
+
             Animatable? behavior = slot?.Itemstack?.Item?.GetBehavior<AnimatableProcedural>()
                 ?? slot?.Itemstack?.Item?.GetBehavior<AnimatableAttachable>()
                 ?? slot?.Itemstack?.Item?.GetBehavior<Animatable>();
 
-            if (slot == null || behavior == null) return true;
+            if (behavior == null) return true;
 
             ItemRenderInfo renderInfo = __instance.capi.Render.GetItemStackRenderInfo(slot, EnumItemRenderTarget.HandTp, dt);
 
@@ -165,6 +161,11 @@ internal static class AnimatorPatch
     }
 
 
+    private static readonly FieldInfo? _localTransformMatrix = typeof(ClientAnimator).GetField("localTransformMatrix", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+    private static readonly FieldInfo? _frameByDepthByAnimation = typeof(ClientAnimator).GetField("frameByDepthByAnimation", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+    private static readonly FieldInfo? _nextFrameTransformsByAnimation = typeof(ClientAnimator).GetField("nextFrameTransformsByAnimation", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+    private static readonly FieldInfo? _weightsByAnimationAndElement_this = typeof(ClientAnimator).GetField("weightsByAnimationAndElement", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+
     private static bool CalculateMatrices(
         ClientAnimator __instance,
         int animVersion,
@@ -177,15 +178,19 @@ internal static class AnimatorPatch
         int depth
     )
     {
-        Field<float[], ClientAnimator> localTransformMatrix = new(typeof(ClientAnimator), "localTransformMatrix", __instance);
-        Field<List<ElementPose>[][], ClientAnimator> frameByDepthByAnimation = new(typeof(ClientAnimator), "frameByDepthByAnimation", __instance);
-        Field<List<ElementPose>[][], ClientAnimator> nextFrameTransformsByAnimation = new(typeof(ClientAnimator), "nextFrameTransformsByAnimation", __instance);
-        Field<ShapeElementWeights[][][], ClientAnimator> weightsByAnimationAndElement_this = new(typeof(ClientAnimator), "weightsByAnimationAndElement", __instance);
+        if (_localTransformMatrix == null || _frameByDepthByAnimation == null || _nextFrameTransformsByAnimation == null || _weightsByAnimationAndElement_this == null) return true;
+
+        float[]? localTransformMatrix = (float[]?)_localTransformMatrix.GetValue(__instance);
+        List<ElementPose>[][]? frameByDepthByAnimation = (List<ElementPose>[][]?)_frameByDepthByAnimation.GetValue(__instance);
+        List<ElementPose>[][]? nextFrameTransformsByAnimation = (List<ElementPose>[][]?)_nextFrameTransformsByAnimation.GetValue(__instance);
+        ShapeElementWeights[][][]? weightsByAnimationAndElement_this = (ShapeElementWeights[][][]?)_weightsByAnimationAndElement_this.GetValue(__instance);
+
+        if (localTransformMatrix == null || frameByDepthByAnimation == null || nextFrameTransformsByAnimation == null || weightsByAnimationAndElement_this == null) return true;
 
         depth++;
-        List<ElementPose>[] nowChildKeyFrameByAnimation = frameByDepthByAnimation.Value[depth];
-        List<ElementPose>[] nextChildKeyFrameByAnimation = nextFrameTransformsByAnimation.Value[depth];
-        ShapeElementWeights[][] childWeightsByAnimationAndElement = weightsByAnimationAndElement_this.Value[depth];
+        List<ElementPose>[] nowChildKeyFrameByAnimation = frameByDepthByAnimation[depth];
+        List<ElementPose>[] nextChildKeyFrameByAnimation = nextFrameTransformsByAnimation[depth];
+        ShapeElementWeights[][] childWeightsByAnimationAndElement = weightsByAnimationAndElement_this[depth];
 
 
         for (int childPoseIndex = 0; childPoseIndex < outFrame.Count; childPoseIndex++)
@@ -194,7 +199,7 @@ internal static class AnimatorPatch
             ShapeElement elem = outFramePose.ForElement;
 
             SetMat(outFramePose, modelMatrix);
-            Mat4f.Identity(localTransformMatrix.Value);
+            Mat4f.Identity(localTransformMatrix);
 
             outFramePose.Clear();
 
@@ -235,11 +240,9 @@ internal static class AnimatorPatch
                 Console.WriteLine($"[AM lib] Exception while calling 'OnElementPoseUsedCallback': {exception}");
 #endif
             }
-            
 
-
-            elem.GetLocalTransformMatrix(animVersion, localTransformMatrix.Value, outFramePose);
-            Mat4f.Mul(outFramePose.AnimModelMatrix, outFramePose.AnimModelMatrix, localTransformMatrix.Value);
+            elem.GetLocalTransformMatrix(animVersion, localTransformMatrix, outFramePose);
+            Mat4f.Mul(outFramePose.AnimModelMatrix, outFramePose.AnimModelMatrix, localTransformMatrix);
 
             CalculateElementTransformMatrices(__instance, elem, outFramePose);
 
@@ -271,24 +274,30 @@ internal static class AnimatorPatch
         }
     }
 
+    private static readonly FieldInfo? _activeAnimationCount = typeof(AnimatorBase).GetField("activeAnimCount", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+    
     private static float SumWeights(int childPoseIndex, AnimatorBase __instance, ShapeElementWeights[][] weightsByAnimationAndElement)
     {
-        Field<int, AnimatorBase> activeAnimCount = new(typeof(AnimatorBase), "activeAnimCount", __instance);
+        int? activeAnimationCount = (int?)_activeAnimationCount?.GetValue(__instance);
+        if (activeAnimationCount == null) return 0;
 
         float weightSum = 0f;
-        for (int animIndex = 0; animIndex < activeAnimCount.Value; animIndex++)
+        for (int animationIndex = 0; animationIndex < activeAnimationCount.Value; animationIndex++)
         {
-            RunningAnimation anim = __instance.CurAnims[animIndex];
-            ShapeElementWeights sew = weightsByAnimationAndElement[animIndex][childPoseIndex];
+            RunningAnimation animation = __instance.CurAnims[animationIndex];
+            ShapeElementWeights weight = weightsByAnimationAndElement[animationIndex][childPoseIndex];
 
-            if (sew.BlendMode != EnumAnimationBlendMode.Add)
+            if (weight.BlendMode != EnumAnimationBlendMode.Add)
             {
-                weightSum += sew.Weight * anim.EasingFactor;
+                weightSum += weight.Weight * animation.EasingFactor;
             }
         }
 
         return weightSum;
     }
+
+    private static readonly FieldInfo? _prevFrameArray = typeof(ClientAnimator).GetField("prevFrame", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+    private static readonly FieldInfo? _nextFrameArray = typeof(ClientAnimator).GetField("nextFrame", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
 
     private static void CalculateAnimationForElements(
         ClientAnimator __instance,
@@ -303,35 +312,36 @@ internal static class AnimatorPatch
         int childPoseIndex
     )
     {
-        Field<int, AnimatorBase> activeAnimCount = new(typeof(AnimatorBase), "activeAnimCount", __instance);
+        int? activeAnimationCount = (int?)_activeAnimationCount?.GetValue(__instance);
+        int[]? prevFrameArray = (int[]?)_prevFrameArray?.GetValue(__instance);
+        int[]? nextFrameArray = (int[]?)_nextFrameArray?.GetValue(__instance);
 
-        for (int animIndex = 0; animIndex < activeAnimCount.Value; animIndex++)
+        if (activeAnimationCount == null || prevFrameArray == null || nextFrameArray == null) return;
+
+        for (int animationIndex = 0; animationIndex < activeAnimationCount.Value; animationIndex++)
         {
-            Field<int[], ClientAnimator> prevFrameArray = new(typeof(ClientAnimator), "prevFrame", __instance);
-            Field<int[], ClientAnimator> nextFrameArray = new(typeof(ClientAnimator), "nextFrame", __instance);
+            RunningAnimation animation = __instance.CurAnims[animationIndex];
+            ShapeElementWeights sew = weightsByAnimationAndElement[animationIndex][childPoseIndex];
+            CalcBlendedWeight(animation, weightSum / sew.Weight, sew.BlendMode);
 
-            RunningAnimation anim = __instance.CurAnims[animIndex];
-            ShapeElementWeights sew = weightsByAnimationAndElement[animIndex][childPoseIndex];
-            CalcBlendedWeight(anim, weightSum / sew.Weight, sew.BlendMode);
+            ElementPose nowFramePose = nowKeyFrameByAnimation[animationIndex][childPoseIndex];
+            ElementPose nextFramePose = nextInKeyFrameByAnimation[animationIndex][childPoseIndex];
 
-            ElementPose nowFramePose = nowKeyFrameByAnimation[animIndex][childPoseIndex];
-            ElementPose nextFramePose = nextInKeyFrameByAnimation[animIndex][childPoseIndex];
-
-            int prevFrame = prevFrameArray.Value[animIndex];
-            int nextFrame = nextFrameArray.Value[animIndex];
+            int prevFrame = prevFrameArray[animationIndex];
+            int nextFrame = nextFrameArray[animationIndex];
 
             // May loop around, so nextFrame can be smaller than prevFrame
-            float keyFrameDist = nextFrame > prevFrame ? (nextFrame - prevFrame) : (anim.Animation.QuantityFrames - prevFrame + nextFrame);
-            float curFrameDist = anim.CurrentFrame >= prevFrame ? (anim.CurrentFrame - prevFrame) : (anim.Animation.QuantityFrames - prevFrame + anim.CurrentFrame);
+            float keyFrameDist = nextFrame > prevFrame ? (nextFrame - prevFrame) : (animation.Animation.QuantityFrames - prevFrame + nextFrame);
+            float curFrameDist = animation.CurrentFrame >= prevFrame ? (animation.CurrentFrame - prevFrame) : (animation.Animation.QuantityFrames - prevFrame + animation.CurrentFrame);
 
             float lerp = curFrameDist / keyFrameDist;
 
-            outFramePose.Add(nowFramePose, nextFramePose, lerp, anim.BlendedWeight);
+            outFramePose.Add(nowFramePose, nextFramePose, lerp, animation.BlendedWeight);
 
-            nowChildKeyFrameByAnimation[animIndex] = nowFramePose.ChildElementPoses;
-            childWeightsByAnimationAndElement[animIndex] = sew.ChildElements;
+            nowChildKeyFrameByAnimation[animationIndex] = nowFramePose.ChildElementPoses;
+            childWeightsByAnimationAndElement[animationIndex] = sew.ChildElements;
 
-            nextChildKeyFrameByAnimation[animIndex] = nextFramePose.ChildElementPoses;
+            nextChildKeyFrameByAnimation[animationIndex] = nextFramePose.ChildElementPoses;
         }
     }
 
@@ -347,30 +357,35 @@ internal static class AnimatorPatch
         }
     }
 
+    private static readonly FieldInfo? _jointsDone = typeof(ClientAnimator).GetField("jointsDone", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+    private static readonly FieldInfo? _tmpMatrix = typeof(ClientAnimator).GetField("tmpMatrix", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public);
+
     private static void CalculateElementTransformMatrices(ClientAnimator __instance, ShapeElement element, ElementPose pose)
     {
-        Field<HashSet<int>, ClientAnimator> jointsDone = new(typeof(ClientAnimator), "jointsDone", __instance);
-        Field<float[], ClientAnimator> tmpMatrix = new(typeof(ClientAnimator), "tmpMatrix", __instance);
+        HashSet<int>? jointsDone = (HashSet<int>?)_jointsDone?.GetValue(__instance);
+        float[]? tmpMatrix = (float[]?)_tmpMatrix?.GetValue(__instance);
 
-        if (element.JointId > 0 && !jointsDone.Value.Contains(element.JointId))
+        if (jointsDone == null || tmpMatrix == null) return;
+
+        if (element.JointId > 0 && !jointsDone.Contains(element.JointId))
         {
-            Mat4f.Mul(tmpMatrix.Value, pose.AnimModelMatrix, element.inverseModelTransform);
+            Mat4f.Mul(tmpMatrix, pose.AnimModelMatrix, element.inverseModelTransform);
 
             int index = 12 * element.JointId;
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[0];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[1];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[2];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[4];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[5];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[6];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[8];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[9];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[10];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[12];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[13];
-            __instance.TransformationMatrices4x3[index++] = tmpMatrix.Value[14];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[0];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[1];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[2];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[4];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[5];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[6];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[8];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[9];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[10];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[12];
+            __instance.TransformationMatrices4x3[index++] = tmpMatrix[13];
+            __instance.TransformationMatrices4x3[index] = tmpMatrix[14];
 
-            jointsDone.Value.Add(element.JointId);
+            jointsDone.Add(element.JointId);
         }
     }
 }

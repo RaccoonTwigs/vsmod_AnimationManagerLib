@@ -17,6 +17,7 @@ internal static class EyeHightController
 
     public static event Action<float>? UpdateEyeHeightTick;
 
+
     private static bool CanStandUp(EntityPlayer __instance)
     {
         Field<Cuboidf, EntityPlayer> tmpCollBox = new(typeof(EntityPlayer), "tmpCollBox", __instance);
@@ -173,6 +174,7 @@ internal static class EyeHightController
         }
     }
 
+    private static bool? _initialBobbingValue;
     public static bool UpdateEyeHeight(EntityPlayer __instance, float dt)
     {
         Field<EntityControls, EntityAgent> servercontrols = new(typeof(EntityAgent), "servercontrols", __instance);

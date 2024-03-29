@@ -179,7 +179,15 @@ public class AnimationManager : API.IAnimationManager
     {
         mApplier.ApplyAnimation(pose, ref weight);
     }
+    public void OnApplyAnimation(Entity entity, ElementPose pose, ref float weight)
+    {
+        mApplier.ApplyAnimation(pose, ref weight);
+    }
     public void OnCalculateWeight(ElementPose pose, ref float weight)
+    {
+        mApplier.CalculateWeight(pose, ref weight);
+    }
+    public void OnCalculateWeight(Entity entity, ElementPose pose, ref float weight)
     {
         mApplier.CalculateWeight(pose, ref weight);
     }
