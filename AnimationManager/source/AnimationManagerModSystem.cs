@@ -69,6 +69,7 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
         {
             clientApi.Event.ReloadShader -= LoadAnimatedItemShaders;
             Patches.AnimatorPatch.Unpatch(HarmonyID);
+            _cameraSettingsManager?.Dispose();
         }
         base.Dispose();
     }
