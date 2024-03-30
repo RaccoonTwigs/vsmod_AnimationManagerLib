@@ -20,9 +20,13 @@ internal static class PlayerModelMatrixController
     [Obsolete("Will be removed")]
     public static float WalkPitchMultiplier { get; set; } = 1.0f;
 
-    public static void LoadModelMatrixForPlayer(EntityPlayerShapeRenderer __instance, Entity entity, bool isSelf, float dt, bool isShadowPass)
+    public static void LoadModelMatrixForPlayer(IClientPlayer player)
     {
-        if (MathF.Abs(PitchModifierFp - 1.0f) > 0.01f) __instance.HeldItemPitchFollowOverride = 0.8f * PitchModifierFp;
+        EntityPlayerShapeRenderer? renderer = player.Entity.Properties.Client.Renderer as EntityPlayerShapeRenderer;
+
+        if (renderer == null) return;
+
+        if (MathF.Abs(PitchModifierFp - 1.0f) > 0.01f) renderer.HeldItemPitchFollowOverride = 0.8f * PitchModifierFp;
     }
 
     public static bool LoadModelMatrixForPlayer_old(EntityPlayerShapeRenderer __instance, Entity entity, bool isSelf, float dt, bool isShadowPass)

@@ -2,10 +2,7 @@
 using System;
 using System.Collections.Generic;
 using Vintagestory.API.Client;
-
-#if DEBUG
-using VSImGui;
-#endif
+using Vintagestory.GameContent;
 
 namespace AnimationManagerLib;
 
@@ -50,12 +47,12 @@ internal sealed class CameraSettingsManager : IDisposable
         }
     }
 
-    private static void SetValue(CameraSettingsType setting, float value)
+    private void SetValue(CameraSettingsType setting, float value)
     {
         switch (setting)
         {
             case CameraSettingsType.FirstPersonHandsPitch:
-                PlayerModelMatrixController.PitchModifierFp = value;
+                SetFirstPersonHandsPitch(mApi.World.Player, value);
                 break;
             case CameraSettingsType.FirstPersonHandsYawSpeed:
                 PlayerModelMatrixController.YawSpeedMultiplier = value;
@@ -76,6 +73,15 @@ internal sealed class CameraSettingsManager : IDisposable
                 EyeHightController.SprintAmplitudeEffect = value;
                 break;
         }
+    }
+
+    public static void SetFirstPersonHandsPitch(IClientPlayer player, float value)
+    {
+        EntityPlayerShapeRenderer? renderer = player.Entity.Properties.Client.Renderer as EntityPlayerShapeRenderer;
+
+        if (renderer == null) return;
+
+        renderer.HeldItemPitchFollowOverride = 0.8f * value;
     }
 
     public void Dispose()
