@@ -139,24 +139,25 @@ public struct AnimationTarget
         bool owner = (entity.Api as ICoreClientAPI)?.World.Player.Entity.EntityId == entity.EntityId;
         if (!owner) return AnimationTargetType.EntityThirdPerson;
 
-        bool firstPerson = (entity.Api as ICoreClientAPI)?.World.Player.CameraMode == EnumCameraMode.FirstPerson;
+        bool firstPerson = entity.Api is ICoreClientAPI { World.Player.CameraMode: EnumCameraMode.FirstPerson };
         if (!firstPerson) return AnimationTargetType.EntityThirdPerson;
 
         bool immersive = (entity.Api as ICoreClientAPI)?.Settings.Bool["immersiveFpMode"] ?? false;
         if (!immersive) return AnimationTargetType.EntityFirstPerson;
 
-        return AnimationTargetType.EntityThirdPerson;
+        return AnimationTargetType.EntityFirstPerson;
     }
     static public AnimationTargetType GetItemTargetType(Entity entity)
     {
         bool owner = (entity.Api as ICoreClientAPI)?.World.Player.Entity.EntityId == entity.EntityId;
         if (!owner) return AnimationTargetType.HeldItemTp;
 
-        bool firstPerson = (entity.Api as ICoreClientAPI)?.World.Player.CameraMode == EnumCameraMode.FirstPerson;
+        bool firstPerson = entity.Api is ICoreClientAPI { World.Player.CameraMode: EnumCameraMode.FirstPerson };
         if (firstPerson) return AnimationTargetType.HeldItemFp;
 
         return AnimationTargetType.HeldItemTp;
     }
+
     [Obsolete("Use contructor instead")]
     static public AnimationTarget HeldItem(Entity entity, bool? fp = null) => new(entity.EntityId, fp == null ? AnimationTargetType.HeldItemFp : fp.Value ? AnimationTargetType.HeldItemFp : AnimationTargetType.HeldItemTp);
     [Obsolete("Use contructor instead")]
@@ -504,27 +505,27 @@ public struct AnimationId
     public int Hash { get; private set; }
     public Category Category { get; private set; }
 
-    private readonly string DebugName;
+    private readonly string _debugName;
 
     public AnimationId(Category category, string name)
     {
         Category = category;
-        DebugName = name ?? throw new ArgumentException("Animation code cannot be null", nameof(name));
+        _debugName = name ?? throw new ArgumentException("Animation code cannot be null", nameof(name));
         Hash = (int)Utils.ToCrc32(name);
         Hash = (int)Utils.ToCrc32($"{Hash}{Category.Hash}");
     }
     public AnimationId(string category, string animation, EnumAnimationBlendMode blendingType = EnumAnimationBlendMode.Add, float? weight = null)
     {
         Category = new Category(category ?? throw new ArgumentException("Category name cannot be null", nameof(category)), blendingType, weight);
-        DebugName = animation ?? throw new ArgumentException("Animation code cannot be null", nameof(animation));
+        _debugName = animation ?? throw new ArgumentException("Animation code cannot be null", nameof(animation));
         Hash = (int)Utils.ToCrc32(animation);
         Hash = (int)Utils.ToCrc32($"{Hash}{Category.Hash}");
     }
 
     public static implicit operator AnimationId(AnimationRequest request) => request.Animation;
 
-    public readonly string GetName() => DebugName;
-    public readonly override string ToString() => $"{DebugName}, category: {Category}";
+    public readonly string GetName() => _debugName;
+    public readonly override string ToString() => $"{_debugName}, category: {Category}";
     public readonly override int GetHashCode() => Hash;
     public readonly override bool Equals([NotNullWhen(true)] object? obj) => obj?.GetHashCode() == Hash;
     public static bool operator ==(AnimationId left, AnimationId right) => left.Equals(right);
@@ -538,7 +539,7 @@ public struct Category
     public EnumAnimationBlendMode Blending { get; private set; }
     public float? Weight { get; private set; }
 
-    private readonly string mDebugName;
+    private readonly string _debugName;
 
     public Category(string name, EnumAnimationBlendMode blending = EnumAnimationBlendMode.Add, float? weight = null)
     {
@@ -547,7 +548,7 @@ public struct Category
         Blending = blending;
         Hash = (int)Utils.ToCrc32($"{name}{blending}{weight}");
         Weight = weight;
-        mDebugName = name;
+        _debugName = name;
     }
 
     public static implicit operator Category(AnimationRequest request) => request.Animation.Category;
@@ -556,11 +557,11 @@ public struct Category
     {
         if (Blending == EnumAnimationBlendMode.Add)
         {
-            return $"{mDebugName} ({Blending})";
+            return $"{_debugName} ({Blending})";
         }
         else
         {
-            return string.Format("{0} ({1}: {2})", mDebugName, Blending, Weight == null ? "null" : Weight.Value.ToString("#.###"));
+            return string.Format("{0} ({1}: {2})", _debugName, Blending, Weight == null ? "null" : Weight.Value.ToString("#.###"));
         }
     }
 

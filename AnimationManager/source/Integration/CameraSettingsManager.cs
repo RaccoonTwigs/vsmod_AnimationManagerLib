@@ -19,29 +19,29 @@ public enum CameraSettingsType
 
 internal sealed class CameraSettingsManager : IDisposable
 {
-    private readonly Dictionary<CameraSettingsType, CameraSetting> mSettings = new();
-    private readonly long mListener;
-    private readonly ICoreClientAPI mApi;
-    private bool mDisposed = false;
+    private readonly Dictionary<CameraSettingsType, CameraSetting> _settings = new();
+    private readonly long _listener;
+    private readonly ICoreClientAPI _api;
+    private bool _disposed = false;
 
     public CameraSettingsManager(ICoreClientAPI api)
     {
-        mListener = api.World.RegisterGameTickListener(Update, 0);
-        mApi = api;
+        _listener = api.World.RegisterGameTickListener(Update, 0);
+        _api = api;
     }
 
     public void Set(string domain, CameraSettingsType setting, float value, float blendingSpeed)
     {
-        if (!mSettings.ContainsKey(setting))
+        if (!_settings.ContainsKey(setting))
         {
-            mSettings.Add(setting, new());
+            _settings.Add(setting, new());
         }
 
-        mSettings[setting].Set(domain, value, blendingSpeed);
+        _settings[setting].Set(domain, value, blendingSpeed);
     }
     private void Update(float dt)
     {
-        foreach ((CameraSettingsType setting, CameraSetting value) in mSettings)
+        foreach ((CameraSettingsType setting, CameraSetting value) in _settings)
         {
             SetValue(setting, value.Get(dt));
         }
@@ -52,16 +52,7 @@ internal sealed class CameraSettingsManager : IDisposable
         switch (setting)
         {
             case CameraSettingsType.FirstPersonHandsPitch:
-                SetFirstPersonHandsPitch(mApi.World.Player, value);
-                break;
-            case CameraSettingsType.FirstPersonHandsYawSpeed:
-                PlayerModelMatrixController.YawSpeedMultiplier = value;
-                break;
-            case CameraSettingsType.IntoxicationEffectIntensity:
-                PlayerModelMatrixController.IntoxicationEffectIntensity = value;
-                break;
-            case CameraSettingsType.WalkPitchMultiplier:
-                PlayerModelMatrixController.WalkPitchMultiplier = value;
+                SetFirstPersonHandsPitch(_api.World.Player, value);
                 break;
             case CameraSettingsType.WalkBobbingAmplitude:
                 EyeHightController.Amplitude = value;
@@ -77,40 +68,38 @@ internal sealed class CameraSettingsManager : IDisposable
 
     public static void SetFirstPersonHandsPitch(IClientPlayer player, float value)
     {
-        EntityPlayerShapeRenderer? renderer = player.Entity.Properties.Client.Renderer as EntityPlayerShapeRenderer;
-
-        if (renderer == null) return;
+        if (player.Entity.Properties.Client.Renderer is not EntityPlayerShapeRenderer renderer) return;
 
         renderer.HeldItemPitchFollowOverride = 0.8f * value;
     }
 
     public void Dispose()
     {
-        if (mDisposed) return;
-        mDisposed = true;
-        mApi.World.UnregisterGameTickListener(mListener);
+        if (_disposed) return;
+        _disposed = true;
+        _api.World.UnregisterGameTickListener(_listener);
     }
 }
 
 internal sealed class CameraSetting
 {
-    private readonly Dictionary<string, CameraSettingValue> mValues = new();
+    private readonly Dictionary<string, CameraSettingValue> _values = new();
 
     public void Set(string domain, float value, float speed)
     {
-        if (!mValues.ContainsKey(domain))
+        if (!_values.ContainsKey(domain))
         {
-            mValues[domain] = new(1.0f);
+            _values[domain] = new(1.0f);
         }
 
-        mValues[domain].Set(value, speed);
+        _values[domain].Set(value, speed);
     }
 
     public float Get(float dt)
     {
         float result = 1.0f;
 
-        foreach ((_, CameraSettingValue value) in mValues)
+        foreach ((_, CameraSettingValue value) in _values)
         {
             result *= value.Get(dt);
         }
@@ -121,39 +110,39 @@ internal sealed class CameraSetting
 
 internal sealed class CameraSettingValue
 {
-    private const float cEpsilon = 1e-3f;
-    private const float cSpeedMultiplier = 10.0f;
+    private const float _epsilon = 1e-3f;
+    private const float _speedMultiplier = 10.0f;
 
-    private float mValue;
-    private float mTarget;
-    private float mBlendSpeed = 0;
-    private bool mUpdated = true;
+    private float _value;
+    private float _target;
+    private float _blendSpeed = 0;
+    private bool _updated = true;
 
     public CameraSettingValue(float value)
     {
-        mValue = value;
-        mTarget = value;
+        _value = value;
+        _target = value;
     }
 
     public void Set(float target, float speed)
     {
-        mTarget = target;
-        mBlendSpeed = speed;
-        mUpdated = false;
+        _target = target;
+        _blendSpeed = speed;
+        _updated = false;
     }
 
     public float Get(float dt)
     {
         Update(dt);
-        return mValue;
+        return _value;
     }
 
     private void Update(float dt)
     {
-        if (mUpdated) return;
-        float diff = mTarget - mValue;
-        float change = Math.Clamp(diff * dt * mBlendSpeed * cSpeedMultiplier, -Math.Abs(diff), Math.Abs(diff));
-        mValue += change;
-        mUpdated = Math.Abs(mValue - mTarget) < cEpsilon;
+        if (_updated) return;
+        float diff = _target - _value;
+        float change = Math.Clamp(diff * dt * _blendSpeed * _speedMultiplier, -Math.Abs(diff), Math.Abs(diff));
+        _value += change;
+        _updated = Math.Abs(_value - _target) < _epsilon;
     }
 }
