@@ -13,7 +13,9 @@ public interface IAnimationManagerSystem
     bool Register(AnimationId id, AnimationData animation);
     Guid Run(AnimationTarget animationTarget, AnimationSequence sequence, bool synchronize = true);
     void Stop(Guid runId);
+    [Obsolete]
     void Suppress(string code);
+    [Obsolete]
     void Unsuppress(string code);
 }
 

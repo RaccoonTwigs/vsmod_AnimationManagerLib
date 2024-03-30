@@ -28,12 +28,9 @@ internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimat
 
     public override void OnClientFrame(float dt)
     {
-        if (!_replaced && base.Animator != null)
+        if (base.Animator is ClientAnimator && base.Animator is not ProceduralClientAnimator)
         {
-            Console.WriteLine($"replaced animator");
-
             Animator = base.Animator;
-            _replaced = true;
         }
 
         _manager.OnFrameHandler(this, entity, dt);
@@ -52,7 +49,6 @@ internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimat
 
     private static readonly FieldInfo? _managerEntity = typeof(Vintagestory.API.Common.AnimationManager).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
     private readonly AnimationManager _manager;
-    private bool _replaced = false;
 }
 
 internal class ProceduralClientAnimator : ClientAnimator
