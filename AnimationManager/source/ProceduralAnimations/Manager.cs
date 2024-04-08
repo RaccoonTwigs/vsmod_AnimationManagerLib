@@ -114,6 +114,8 @@ public class AnimationManager : API.IAnimationManager
 
     public void OnFrameHandler(Vintagestory.API.Common.AnimationManager manager, Entity entity, float dt)
     {
+        if (entity == null || !entity.Alive) ValidateEntities();
+
         if (entity == null) return;
 
         AnimationTarget animationTarget;
@@ -159,8 +161,10 @@ public class AnimationManager : API.IAnimationManager
 
         mApplier.AddAnimation(entity.EntityId, composition);
     }
-    public void OnFrameHandler(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt)
+    public void OnFrameHandler(Vintagestory.API.Common.IAnimator animator, Shape shape, Entity entity, float dt)
     {
+        if (entity == null || !entity.Alive) ValidateEntities();
+
         if (entity == null) return;
 
         AnimationTargetType targetType = AnimationTarget.GetItemTargetType(entity);
@@ -173,23 +177,51 @@ public class AnimationManager : API.IAnimationManager
         mAnimationFrames.Clear();
         TimeSpan timeSpan = TimeSpan.FromSeconds(dt);
         AnimationFrame composition = mComposers[animationTarget].Compose(timeSpan);
-        mApplier.AddAnimation(animator, composition);
+        mApplier.AddAnimation(animator, composition, shape);
     }
-    public void OnApplyAnimation(ElementPose pose, ref float weight)
+    public void OnApplyAnimation(ElementPose pose, ref float weight, Shape? shape = null)
     {
-        mApplier.ApplyAnimation(pose, ref weight);
+        if (shape == null)
+        {
+            mApplier.ApplyAnimation(pose, ref weight);
+        }
+        else
+        {
+            mApplier.ApplyAnimation(pose, shape, ref weight);
+        }
     }
-    public void OnApplyAnimation(Entity entity, ElementPose pose, ref float weight)
+    public void OnApplyAnimation(Entity entity, ElementPose pose, ref float weight, Shape? shape = null)
     {
-        mApplier.ApplyAnimation(pose, ref weight);
+        if (shape == null)
+        {
+            mApplier.ApplyAnimation(pose, ref weight);
+        }
+        else
+        {
+            mApplier.ApplyAnimation(pose, shape, ref weight);
+        }
     }
-    public void OnCalculateWeight(ElementPose pose, ref float weight)
+    public void OnCalculateWeight(ElementPose pose, ref float weight, Shape? shape = null)
     {
-        mApplier.CalculateWeight(pose, ref weight);
+        if (shape == null)
+        {
+            mApplier.CalculateWeight(pose, ref weight);
+        }
+        else
+        {
+            mApplier.CalculateWeight(pose, shape, ref weight);
+        }
     }
-    public void OnCalculateWeight(Entity entity, ElementPose pose, ref float weight)
+    public void OnCalculateWeight(Entity entity, ElementPose pose, ref float weight, Shape? shape = null)
     {
-        mApplier.CalculateWeight(pose, ref weight);
+        if (shape == null)
+        {
+            mApplier.CalculateWeight(pose, ref weight);
+        }
+        else
+        {
+            mApplier.CalculateWeight(pose, shape, ref weight);
+        }
     }
 
     private static AnimationRequest[] ToRequests(AnimationId animationId, params RunParameters[] parameters)
@@ -342,6 +374,7 @@ public class AnimationManager : API.IAnimationManager
 internal class AnimationApplier
 {
     public Dictionary<ElementPose, (string name, AnimationFrame composition)> Poses { get; private set; } = new();
+    public Dictionary<Shape, Dictionary<ElementPose, (string name, AnimationFrame composition)>> PosesByShape { get; private set; } = new();
     static public Dictionary<uint, string> PosesNames { get; set; } = new();
 
     private readonly ICoreAPI mApi;
@@ -359,11 +392,34 @@ internal class AnimationApplier
         return true;
     }
 
+    public bool CalculateWeight(ElementPose pose, Shape shape, ref float weight)
+    {
+        if (pose == null || !PosesByShape.ContainsKey(shape) || !PosesByShape[shape].ContainsKey(pose)) return false;
+
+        (string name, AnimationFrame? composition) = PosesByShape[shape][pose];
+
+        composition.Weight(ref weight, Utils.ToCrc32(name));
+
+        return true;
+    }
+
     public bool ApplyAnimation(ElementPose pose, ref float weight)
     {
         if (pose == null || !Poses.ContainsKey(pose)) return false;
 
         (string name, AnimationFrame? composition) = Poses[pose];
+        composition.Apply(pose, ref weight, Utils.ToCrc32(name));
+
+        Poses.Remove(pose);
+
+        return true;
+    }
+
+    public bool ApplyAnimation(ElementPose pose, Shape shape, ref float weight)
+    {
+        if (pose == null || !PosesByShape.ContainsKey(shape) || !PosesByShape[shape].ContainsKey(pose)) return false;
+
+        (string name, AnimationFrame? composition) = PosesByShape[shape][pose];
         composition.Apply(pose, ref weight, Utils.ToCrc32(name));
 
         Poses.Remove(pose);
@@ -393,9 +449,28 @@ internal class AnimationApplier
         }
     }
 
+    public void AddAnimation(Vintagestory.API.Common.IAnimator animator, AnimationFrame composition, Shape shape)
+    {
+        if (!PosesByShape.ContainsKey(shape))
+        {
+            PosesByShape[shape] = new();
+        }
+        
+        foreach ((ElementId id, _) in composition.Elements)
+        {
+            string name = PosesNames[id.ElementNameHash];
+            ElementPose pose = animator.GetPosebyName(name);
+            if (pose != null) PosesByShape[shape][pose] = (name, composition);
+        }
+    }
+
     public void Clear()
     {
         Poses.Clear();
+        foreach ((Shape shape, _) in PosesByShape)
+        {
+            PosesByShape[shape].Clear();
+        }
     }
 }
 

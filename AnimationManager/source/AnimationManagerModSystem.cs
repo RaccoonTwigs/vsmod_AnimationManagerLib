@@ -103,8 +103,8 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
 
         return true;
     }
-    internal void OnBeforeRender(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt)
+    internal void OnBeforeRender(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt, Shape shape)
     {
-        _manager?.OnFrameHandler(animator, entity, dt);
+        _manager?.OnFrameHandler(animator, shape, entity, dt);
     }
 }
