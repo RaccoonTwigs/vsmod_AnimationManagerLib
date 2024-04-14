@@ -21,7 +21,7 @@ internal class Composer : IComposer
     public bool Register(AnimationId id, IAnimation animation) => mAnimations.TryAdd(id, animation);
     public void Run(AnimationRequest request, IComposer.IfRemoveAnimator finishCallback)
     {
-        if (mCallbacks.ContainsKey(request.Animation.Category)) mCallbacks[request.Animation.Category](false);
+        if (mCallbacks.ContainsKey(request.Animation.Category)) mCallbacks[request.Animation.Category](IAnimator.Status.Running);
 
         mCallbacks[request.Animation.Category] = finishCallback;
 
@@ -74,7 +74,7 @@ internal class Composer : IComposer
                 {
                     IComposer.IfRemoveAnimator callback = mCallbacks[category];
                     mCallbacks.Remove(category);
-                    if (callback(true)) Stop(category);
+                    if (callback(IAnimator.Status.Finished)) Stop(category);
                 }
 
                 break;
@@ -84,7 +84,7 @@ internal class Composer : IComposer
                 {
                     IComposer.IfRemoveAnimator callback = mCallbacks[category];
                     mCallbacks.Remove(category);
-                    callback(true);
+                    callback(IAnimator.Status.Stopped);
                 }
                 break;
 

@@ -88,7 +88,7 @@ internal interface IAnimator : IHasDebugWindow
 
 internal interface IComposer : IHasDebugWindow
 {
-    delegate bool IfRemoveAnimator(bool complete);
+    delegate bool IfRemoveAnimator(IAnimator.Status status);
 
     bool Register(AnimationId id, IAnimation animation);
     void Run(AnimationRequest request, IfRemoveAnimator finishCallback);
