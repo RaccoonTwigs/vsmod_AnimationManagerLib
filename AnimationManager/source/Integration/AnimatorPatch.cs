@@ -48,9 +48,18 @@ internal static class AnimatorPatch
 
     private static bool RenderHeldItem(EntityShapeRenderer __instance, float dt, bool isShadowPass, bool right)
     {
-        if (isShadowPass || !right) return true;
+        if (isShadowPass) return true;
 
-        ItemSlot? slot = (__instance.entity as EntityPlayer)?.RightHandItemSlot;
+        ItemSlot? slot;
+
+        if (right)
+        {
+            slot = (__instance.entity as EntityPlayer)?.RightHandItemSlot;
+        }
+        else
+        {
+            slot = (__instance.entity as EntityPlayer)?.LeftHandItemSlot;
+        }
 
         if (slot?.Itemstack?.Item == null) return true;
 

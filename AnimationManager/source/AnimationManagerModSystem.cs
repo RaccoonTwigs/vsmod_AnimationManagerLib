@@ -34,7 +34,7 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
         _manager = new AnimationManager(api, synchronizer);
         synchronizer.Init(
             api,
-            (packet) => _manager.Run(packet.AnimationTarget, packet.RunId, packet.Requests),
+            (packet) => _manager.RunFromPacket(packet.AnimationTarget, packet.RunId, packet.Requests),
             (packet) => _manager.Stop(packet.RunId),
             ChannelName
         );
@@ -103,8 +103,8 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
 
         return true;
     }
-    internal void OnBeforeRender(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt)
+    internal void OnBeforeRender(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt, Shape shape)
     {
-        _manager?.OnFrameHandler(animator, entity, dt);
+        _manager?.OnFrameHandler(animator, shape, entity, dt);
     }
 }

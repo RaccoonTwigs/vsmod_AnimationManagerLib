@@ -215,6 +215,7 @@ internal static class EyeHightController
         }
         else if (direction.Value != -1)
         {
+            __instance.PlayStepSound(player, __instance.PlayInsideSound(player));
             _direction.SetValue(__instance, -1);
         }
     }

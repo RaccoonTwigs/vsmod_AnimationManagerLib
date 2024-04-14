@@ -8,7 +8,6 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
-using Vintagestory.GameContent;
 
 namespace AnimationManagerLib;
 
@@ -29,7 +28,7 @@ public sealed class AnimatableShape : ITexPositionSource, IDisposable
 
     public static AnimatableShape? Create(ICoreClientAPI api, string shapePath, Item item)
     {
-        string cacheKey = $"shapeEditorCollectibleMeshes-{shapePath.GetHashCode()}";
+        string cacheKey = $"shapeEditorCollectibleMeshes-{shapePath}";
         AssetLocation shapeLocation = new(shapePath);
         shapeLocation = shapeLocation.WithPathAppendixOnce(".json").WithPathPrefixOnce("shapes/");
 
@@ -133,47 +132,52 @@ public sealed class AnimatableShape : ITexPositionSource, IDisposable
             CacheInvTransforms(elements[i].Children);
         }
     }
-    private static AnimatorBase? GetAnimator(ICoreClientAPI clientApi, string cacheDictKey, Shape? blockShape)
+    private AnimatorBase? GetAnimator(ICoreClientAPI clientApi, string cacheDictKey, Shape? shape)
     {
-        if (blockShape == null)
+        if (shape == null)
         {
             return null;
         }
 
         Dictionary<string, AnimCacheEntry>? animationCache;
-        clientApi.ObjectCache.TryGetValue("coAnimCache", out object? animCacheObj);
+        clientApi.ObjectCache.TryGetValue("proceduralAnimatorsCache", out object? animCacheObj);
         animationCache = animCacheObj as Dictionary<string, AnimCacheEntry>;
         if (animationCache == null)
         {
-            clientApi.ObjectCache["coAnimCache"] = animationCache = new Dictionary<string, AnimCacheEntry>();
+            clientApi.ObjectCache["proceduralAnimatorsCache"] = animationCache = new Dictionary<string, AnimCacheEntry>();
         }
 
         AnimatorBase animator;
 
-        var manager = clientApi.ModLoader.GetModSystem<AnimationManagerLibSystem>().AnimationManager;
+        AnimationManager? manager = clientApi.ModLoader.GetModSystem<AnimationManagerLibSystem>().AnimationManager;
+
+        if (manager == null)
+        {
+            return null;
+        }
 
         if (animationCache.TryGetValue(cacheDictKey, out AnimCacheEntry? cacheObj))
         {
             animator = clientApi.Side == EnumAppSide.Client ?
-                new ProceduralClientAnimator(manager , () => 1, cacheObj.RootPoses, cacheObj.Animations, cacheObj.RootElems, blockShape.JointsById) :
-                new ServerAnimator(() => 1, cacheObj.RootPoses, cacheObj.Animations, cacheObj.RootElems, blockShape.JointsById)
+                new ProceduralClientAnimator(shape, manager, () => 1, cacheObj.RootPoses, cacheObj.Animations, cacheObj.RootElems, shape.JointsById) :
+                new ServerAnimator(() => 1, cacheObj.RootPoses, cacheObj.Animations, cacheObj.RootElems, shape.JointsById)
             ;
         }
         else
         {
-            for (int i = 0; blockShape.Animations != null && i < blockShape.Animations.Length; i++)
+            for (int i = 0; shape.Animations != null && i < shape.Animations.Length; i++)
             {
-                blockShape.Animations[i].GenerateAllFrames(blockShape.Elements, blockShape.JointsById);
+                shape.Animations[i].GenerateAllFrames(shape.Elements, shape.JointsById);
             }
 
             animator = clientApi.Side == EnumAppSide.Client ?
-                new ProceduralClientAnimator(manager , () => 1, blockShape.Animations, blockShape.Elements, blockShape.JointsById) :
-                new ServerAnimator(() => 1, blockShape.Animations, blockShape.Elements, blockShape.JointsById)
+                new ProceduralClientAnimator(shape, manager, () => 1, shape.Animations, shape.Elements, shape.JointsById) :
+                new ServerAnimator(() => 1, shape.Animations, shape.Elements, shape.JointsById)
             ;
 
             animationCache[cacheDictKey] = new AnimCacheEntry()
             {
-                Animations = blockShape.Animations,
+                Animations = shape.Animations,
                 RootElems = (animator as ClientAnimator)?.rootElements,
                 RootPoses = (animator as ClientAnimator)?.RootPoses
             };
