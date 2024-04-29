@@ -58,9 +58,7 @@ public sealed class ShapeElementCollider
         PreVertex5 = new(from.X, from.Y + diagonal.Y, from.Z + diagonal.Z, from.W);
         PreVertex6 = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
 
-        float[] elemMatrix = new float[16];
-        Mat4f.Identity(elemMatrix);
-        Matrixf elementMatrix = new(elemMatrix);
+        Matrixf elementMatrix = new Matrixf().Identity();
         if (ForElement.ParentElement != null) GetElementTransformMatrix(elementMatrix, ForElement.ParentElement);
 
         PreVertex0 = Transform(elementMatrix, PreVertex0, 1 / 16f);
