@@ -1,0 +1,24 @@
+[ 
+	{ 
+		"side": "Server", 
+		"file": "game:entities/humanoid/player", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"LowerTorso",
+				"UpperTorso",
+				"Head",
+				"UpperArmR",
+				"UpperArmL",
+				"LowerArmR",
+				"LowerArmL",
+				"UpperFootL",
+				"UpperFootR",
+				"LowerFootL",
+				"LowerFootR"
+			]
+		}
+	}
+]

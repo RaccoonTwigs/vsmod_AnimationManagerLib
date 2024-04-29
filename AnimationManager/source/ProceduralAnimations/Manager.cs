@@ -12,6 +12,7 @@ using Vintagestory.API.Datastructures;
 #if DEBUG
 using ImGuiNET;
 using VSImGui;
+using VSImGui.API;
 #endif
 
 namespace AnimationManagerLib;

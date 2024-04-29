@@ -57,7 +57,7 @@ internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimat
 internal class ProceduralClientAnimator : ClientAnimator
 {
     public ProceduralClientAnimator(ClientAnimator previous, EntityAgent entity, AnimationManager manager, Vintagestory.API.Common.Animation[] animations, Action<string> onAnimationStoppedListener) : base(
-        () => (double)entity.Controls.MovespeedMultiplier * entity.GetWalkSpeedMultiplier(),
+        () => entity.Controls.MovespeedMultiplier * entity.GetWalkSpeedMultiplier(),
         previous.RootPoses,
         animations,
         previous.rootElements,
@@ -67,6 +67,7 @@ internal class ProceduralClientAnimator : ClientAnimator
     {
         _entity = entity;
         _manager = manager;
+        _colliders = entity.GetBehavior<CollidersEntityBehavior>();
 
         frameByDepthByAnimation = (List<ElementPose>[][])_frameByDepthByAnimation.GetValue(previous);
         nextFrameTransformsByAnimation = (List<ElementPose>[][])_nextFrameTransformsByAnimation.GetValue(previous);
@@ -194,6 +195,7 @@ internal class ProceduralClientAnimator : ClientAnimator
     }
 
     private readonly Entity? _entity;
+    private readonly CollidersEntityBehavior? _colliders;
     private readonly AnimationManager _manager;
     private readonly Shape? _shape;
 
@@ -296,6 +298,23 @@ internal class ProceduralClientAnimator : ClientAnimator
 
             CalculateElementTransformMatrices(elem, outFramePose);
 
+            #region Colliders
+            if (_colliders != null && _colliders.UnprocessedElementsLeft && _colliders.ShapeElementsToProcess.Contains(elem.Name))
+            {
+                _colliders.Colliders.Add(elem.Name, new ShapeElementCollider(elem));
+                _colliders.ShapeElementsToProcess.Remove(elem.Name);
+                _colliders.UnprocessedElementsLeft = _colliders.ShapeElementsToProcess.Count > 0;
+                Console.WriteLine($"CollidersEntityBehavior: {elem.Name} processed");
+            }
+            if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
+            {
+                Mat4f.Mul(tmpMatrix, outFramePose.AnimModelMatrix, elem.inverseModelTransform);
+                collider?.Transform(tmpMatrix);
+            }
+            #endregion
+
+            
+
             if (outFramePose.ChildElementPoses != null)
             {
                 CalculateMatrices(
@@ -313,6 +332,20 @@ internal class ProceduralClientAnimator : ClientAnimator
         }
 
         return false;
+    }
+
+    public float[] GetShapeElementModelMatrix(ShapeElement element)
+    {
+        List<ShapeElement> parentPath = element.GetParentPath();
+        float[] array = Mat4f.Create();
+        for (int i = 0; i < parentPath.Count; i++)
+        {
+            float[] localTransformMatrix = parentPath[i].GetLocalTransformMatrix(0);
+            Mat4f.Mul(array, array, localTransformMatrix);
+        }
+
+        Mat4f.Mul(array, array, element.GetLocalTransformMatrix(0));
+        return array;
     }
 
     private static void SetMat(ElementPose pose, float[] modelMatrix)

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
@@ -26,9 +27,20 @@ internal static class AnimatorPatch
             );
 
         new Harmony(harmonyId).Patch(
-                typeof(EntityPlayer).GetMethod("Initialize", AccessTools.all),
+                typeof(EntityAgent).GetMethod("Initialize", AccessTools.all),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(ReplaceAnimationManagers)))
             );
+
+#if DEBUG
+        new Harmony(harmonyId).Patch(
+                typeof(EntityShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderColliders)))
+            );
+        new Harmony(harmonyId).Patch(
+                typeof(EntityPlayerShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderCollidersPlayer)))
+            );
+#endif
 
         _manager = manager;
         _coreClientAPI = api;
@@ -88,7 +100,7 @@ internal static class AnimatorPatch
         return false;
     }
 
-    private static void ReplaceAnimationManagers(EntityPlayer __instance)
+    private static void ReplaceAnimationManagers(EntityAgent __instance)
     {
         try
         {
@@ -105,8 +117,33 @@ internal static class AnimatorPatch
         }
         catch (Exception exception)
         {
-            _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.");
-            _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.\nException: {exception}\n");
+            _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.");
+            _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.\nException: {exception}\n");
         }
     }
+
+#if DEBUG
+    private static void RenderColliders(EntityShapeRenderer __instance)
+    {
+        EntityAgent agent = GetEntityAgent(__instance);
+        agent?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, agent, __instance);
+    }
+    private static void RenderCollidersPlayer(EntityPlayerShapeRenderer __instance)
+    {
+        IShaderProgram? currentShader = _coreClientAPI?.Render.CurrentActiveShader;
+        currentShader?.Stop();
+
+        EntityAgent? agent = GetEntityAgent(__instance);
+        agent?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, agent, __instance);
+
+        currentShader?.Use();
+    }
+    // Returns protected eagent field using reflection
+    private static EntityAgent? GetEntityAgent(EntityShapeRenderer renderer)
+    {
+        return (EntityAgent)typeof(EntityShapeRenderer)
+            .GetField("eagent", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(renderer);
+    }
+#endif
 }

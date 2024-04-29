@@ -24,6 +24,7 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
         api.RegisterCollectibleBehaviorClass("Animatable", typeof(CollectibleBehaviors.Animatable));
         api.RegisterCollectibleBehaviorClass("AnimatableAttachable", typeof(CollectibleBehaviors.AnimatableAttachable));
         api.RegisterCollectibleBehaviorClass("AnimatableProcedural", typeof(CollectibleBehaviors.AnimatableProcedural));
+        api.RegisterEntityBehaviorClass("animationmanagerlib:colliders", typeof(Integration.CollidersEntityBehavior));
     }
     public override void StartClientSide(ICoreClientAPI api)
     {
@@ -107,4 +108,14 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
     {
         _manager?.OnFrameHandler(animator, shape, entity, dt);
     }
+}
+
+public class DebugRenderer : IRenderer
+{
+    public double RenderOrder => throw new NotImplementedException();
+
+    public int RenderRange => throw new NotImplementedException();
+
+    public void Dispose() => throw new NotImplementedException();
+    public void OnRenderFrame(float deltaTime, EnumRenderStage stage) => throw new NotImplementedException();
 }
