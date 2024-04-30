@@ -37,6 +37,8 @@ public sealed class ShapeElementCollider
     public EntityAgent? Entity { get; set; } = null;
     public EntityShapeRenderer? Renderer { get; set; } = null;
 
+    public Matrixf ElementMatrix { get; set; } = new();
+
     public ShapeElementCollider(ShapeElement element)
     {
         ForElement = element;
@@ -60,26 +62,18 @@ public sealed class ShapeElementCollider
         PreVertex5 = new(from.X, from.Y + diagonal.Y, from.Z + diagonal.Z, from.W);
         PreVertex6 = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
 
-        Matrixf elementMatrix = new Matrixf().Identity();
-        elementMatrix.Translate(-8, 0, -8);
-        if (ForElement.ParentElement != null) GetElementTransformMatrix(elementMatrix, ForElement.ParentElement);
+        ElementMatrix = new Matrixf().Identity();
+        ElementMatrix.Translate(-8, 0, -8);
+        if (ForElement.ParentElement != null) GetElementTransformMatrix(ElementMatrix, ForElement.ParentElement);
 
-        elementMatrix
+        Origin = origin;
+
+        ElementMatrix
             .Translate(ForElement.RotationOrigin[0], ForElement.RotationOrigin[1], ForElement.RotationOrigin[2])
             .RotateX((float)ForElement.RotationX * GameMath.DEG2RAD)
             .RotateY((float)ForElement.RotationY * GameMath.DEG2RAD)
             .RotateZ((float)ForElement.RotationZ * GameMath.DEG2RAD)
             .Translate(0f - ForElement.RotationOrigin[0], 0f - ForElement.RotationOrigin[1], 0f - ForElement.RotationOrigin[2]);
-
-        PreVertex0 = Transform(elementMatrix, PreVertex0, 1 / 16f);
-        PreVertex1 = Transform(elementMatrix, PreVertex1, 1 / 16f);
-        PreVertex2 = Transform(elementMatrix, PreVertex2, 1 / 16f);
-        PreVertex3 = Transform(elementMatrix, PreVertex3, 1 / 16f);
-        PreVertex4 = Transform(elementMatrix, PreVertex4, 1 / 16f);
-        PreVertex5 = Transform(elementMatrix, PreVertex5, 1 / 16f);
-        PreVertex6 = Transform(elementMatrix, PreVertex6, 1 / 16f);
-        PreVertex7 = Transform(elementMatrix, PreVertex7, 1 / 16f);
-        Origin = Transform(elementMatrix, origin, 1 / 16f);
     }
 
     public static Vec4f Transform(Matrixf matrix, Vec4f vector, float scale)
@@ -219,49 +213,91 @@ public sealed class ShapeElementCollider
         
         float[] transformMatrix = GetTransformMatrix(JointId, TransformationMatrices4x3);
         Vec4f zeroVector = new(0, 0, 0, 0);
-        float[] mm = new float[16];
-        Mat4f.Identity(mm);
-        //Mat4f.Mul(mm, Renderer.ModelMat, transformMatrix);
-        //mm = Renderer.ModelMat;
-        //mm = transformMatrix;
 
-        mm = transformMatrix;
+        float factor1 = 1f / 16f;
+        float factor2 = 1f;
 
-        Vec4f originTransformed = new();
+        Vertex0 = new Vec4f(PreVertex0.X * factor1, PreVertex0.Y * factor1, PreVertex0.Z * factor1, PreVertex0.W * factor1);
+        Vertex1 = new Vec4f(PreVertex1.X * factor1, PreVertex1.Y * factor1, PreVertex1.Z * factor1, PreVertex1.W * factor1);
+        Vertex2 = new Vec4f(PreVertex2.X * factor1, PreVertex2.Y * factor1, PreVertex2.Z * factor1, PreVertex2.W * factor1);
+        Vertex3 = new Vec4f(PreVertex3.X * factor1, PreVertex3.Y * factor1, PreVertex3.Z * factor1, PreVertex3.W * factor1);
+        Vertex4 = new Vec4f(PreVertex4.X * factor1, PreVertex4.Y * factor1, PreVertex4.Z * factor1, PreVertex4.W * factor1);
+        Vertex5 = new Vec4f(PreVertex5.X * factor1, PreVertex5.Y * factor1, PreVertex5.Z * factor1, PreVertex5.W * factor1);
+        Vertex6 = new Vec4f(PreVertex6.X * factor1, PreVertex6.Y * factor1, PreVertex6.Z * factor1, PreVertex6.W * factor1);
+        Vertex7 = new Vec4f(PreVertex7.X * factor1, PreVertex7.Y * factor1, PreVertex7.Z * factor1, PreVertex7.W * factor1);
 
-        float[] mmForOrigin = new float[16];
-        Mat4f.Identity(mmForOrigin);
-        int? parentJointId = ForElement.ParentElement?.JointId;
-        if (parentJointId != null)
-        {
-            mmForOrigin = GetTransformMatrix(parentJointId.Value, TransformationMatrices4x3);
-        }
+        TransformVector(Vertex0, Vertex0, transformMatrix, zeroVector);
+        TransformVector(Vertex1, Vertex1, transformMatrix, zeroVector);
+        TransformVector(Vertex2, Vertex2, transformMatrix, zeroVector);
+        TransformVector(Vertex3, Vertex3, transformMatrix, zeroVector);
+        TransformVector(Vertex4, Vertex4, transformMatrix, zeroVector);
+        TransformVector(Vertex5, Vertex5, transformMatrix, zeroVector);
+        TransformVector(Vertex6, Vertex6, transformMatrix, zeroVector);
+        TransformVector(Vertex7, Vertex7, transformMatrix, zeroVector);
 
-        /*float[] mmInverted = new float[16];*/
+        Vertex0 = Transform(ElementMatrix, Vertex0, factor2);
+        Vertex1 = Transform(ElementMatrix, Vertex1, factor2);
+        Vertex2 = Transform(ElementMatrix, Vertex2, factor2);
+        Vertex3 = Transform(ElementMatrix, Vertex3, factor2);
+        Vertex4 = Transform(ElementMatrix, Vertex4, factor2);
+        Vertex5 = Transform(ElementMatrix, Vertex5, factor2);
+        Vertex6 = Transform(ElementMatrix, Vertex6, factor2);
+        Vertex7 = Transform(ElementMatrix, Vertex7, factor2);
 
-        //Mat4f.Invert(mmInverted, mmForOrigin);
+        TransformVector(Vertex0, Vertex0, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex1, Vertex1, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex2, Vertex2, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex3, Vertex3, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex4, Vertex4, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex5, Vertex5, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex6, Vertex6, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex7, Vertex7, Renderer.ModelMat, zeroVector);
+    }
 
-        //TransformVector(Origin, originTransformed, mmForOrigin, Origin);
+    public void Transform(float[] transformMatrix)
+    {
+        if (Renderer == null) return;
 
-        TransformVector(PreVertex0, Vertex0, mm, Origin);
-        TransformVector(PreVertex1, Vertex1, mm, Origin);
-        TransformVector(PreVertex2, Vertex2, mm, Origin);
-        TransformVector(PreVertex3, Vertex3, mm, Origin);
-        TransformVector(PreVertex4, Vertex4, mm, Origin);
-        TransformVector(PreVertex5, Vertex5, mm, Origin);
-        TransformVector(PreVertex6, Vertex6, mm, Origin);
-        TransformVector(PreVertex7, Vertex7, mm, Origin);
+        Vec4f zeroVector = new(0, 0, 0, 0);
 
-        mm = Renderer.ModelMat;
+        float factor1 = 1f / 16f;
+        float factor2 = 1f;
 
-        TransformVector(Vertex0, Vertex0, mm, zeroVector);
-        TransformVector(Vertex1, Vertex1, mm, zeroVector);
-        TransformVector(Vertex2, Vertex2, mm, zeroVector);
-        TransformVector(Vertex3, Vertex3, mm, zeroVector);
-        TransformVector(Vertex4, Vertex4, mm, zeroVector);
-        TransformVector(Vertex5, Vertex5, mm, zeroVector);
-        TransformVector(Vertex6, Vertex6, mm, zeroVector);
-        TransformVector(Vertex7, Vertex7, mm, zeroVector);
+        Vertex0 = new Vec4f(PreVertex0.X * factor1, PreVertex0.Y * factor1, PreVertex0.Z * factor1, 1 * factor1);
+        Vertex1 = new Vec4f(PreVertex1.X * factor1, PreVertex1.Y * factor1, PreVertex1.Z * factor1, 1 * factor1);
+        Vertex2 = new Vec4f(PreVertex2.X * factor1, PreVertex2.Y * factor1, PreVertex2.Z * factor1, 1 * factor1);
+        Vertex3 = new Vec4f(PreVertex3.X * factor1, PreVertex3.Y * factor1, PreVertex3.Z * factor1, 1 * factor1);
+        Vertex4 = new Vec4f(PreVertex4.X * factor1, PreVertex4.Y * factor1, PreVertex4.Z * factor1, 1 * factor1);
+        Vertex5 = new Vec4f(PreVertex5.X * factor1, PreVertex5.Y * factor1, PreVertex5.Z * factor1, 1 * factor1);
+        Vertex6 = new Vec4f(PreVertex6.X * factor1, PreVertex6.Y * factor1, PreVertex6.Z * factor1, 1 * factor1);
+        Vertex7 = new Vec4f(PreVertex7.X * factor1, PreVertex7.Y * factor1, PreVertex7.Z * factor1, 1 * factor1);
+
+        TransformVector(Vertex0, Vertex0, transformMatrix, zeroVector);
+        TransformVector(Vertex1, Vertex1, transformMatrix, zeroVector);
+        TransformVector(Vertex2, Vertex2, transformMatrix, zeroVector);
+        TransformVector(Vertex3, Vertex3, transformMatrix, zeroVector);
+        TransformVector(Vertex4, Vertex4, transformMatrix, zeroVector);
+        TransformVector(Vertex5, Vertex5, transformMatrix, zeroVector);
+        TransformVector(Vertex6, Vertex6, transformMatrix, zeroVector);
+        TransformVector(Vertex7, Vertex7, transformMatrix, zeroVector);
+
+        Vertex0 = Transform(ElementMatrix, Vertex0, factor2);
+        Vertex1 = Transform(ElementMatrix, Vertex1, factor2);
+        Vertex2 = Transform(ElementMatrix, Vertex2, factor2);
+        Vertex3 = Transform(ElementMatrix, Vertex3, factor2);
+        Vertex4 = Transform(ElementMatrix, Vertex4, factor2);
+        Vertex5 = Transform(ElementMatrix, Vertex5, factor2);
+        Vertex6 = Transform(ElementMatrix, Vertex6, factor2);
+        Vertex7 = Transform(ElementMatrix, Vertex7, factor2);
+
+        TransformVector(Vertex0, Vertex0, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex1, Vertex1, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex2, Vertex2, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex3, Vertex3, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex4, Vertex4, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex5, Vertex5, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex6, Vertex6, Renderer.ModelMat, zeroVector);
+        TransformVector(Vertex7, Vertex7, Renderer.ModelMat, zeroVector);
     }
 
 #if DEBUG

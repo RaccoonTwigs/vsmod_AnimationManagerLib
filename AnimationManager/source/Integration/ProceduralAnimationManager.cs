@@ -184,13 +184,13 @@ internal class ProceduralClientAnimator : ClientAnimator
             }
 
             #region Colliders
-            if (_colliders != null)
+            /*if (_colliders != null)
             {
                 foreach (ShapeElementCollider collider in _colliders.Colliders.Values)
                 {
                     collider.TransformByJoint(TransformationMatrices4x3);
                 }
-            }
+            }*/
             #endregion
 
             foreach (KeyValuePair<string, AttachmentPointAndPose> item in AttachmentPointByCode)
@@ -319,11 +319,11 @@ internal class ProceduralClientAnimator : ClientAnimator
                 Console.WriteLine($"CollidersEntityBehavior: {elem.Name} processed");
             }
 
-            /*if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
+            if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
             {
-                Mat4f.Mul(tmpMatrix, GetShapeElementModelMatrix(elem), outFramePose.AnimModelMatrix);
+                //Mat4f.Mul(tmpMatrix, GetShapeElementModelMatrix(elem), outFramePose.AnimModelMatrix);
                 collider?.Transform(tmpMatrix);
-            }*/
+            }
             #endregion
 
 
