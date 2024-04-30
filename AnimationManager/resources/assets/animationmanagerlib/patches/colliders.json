@@ -7,7 +7,18 @@
 		"value": { 
 			"code": "animationmanagerlib:colliders",
 			"colliderShapeElements": [
-				"LowerTorso"
+				"LowerTorso",
+				"UpperTorso",
+				"Head",
+				"Neck",
+				"UpperArmR",
+				"UpperArmL",
+				"LowerArmR",
+				"LowerArmL",
+				"UpperFootL",
+				"UpperFootR",
+				"LowerFootL",
+				"LowerFootR"
 			],
 			"colliderShapeElementsAll": [
 				"LowerTorso",

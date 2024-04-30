@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenTK.Graphics.OpenGL;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -184,13 +185,13 @@ internal class ProceduralClientAnimator : ClientAnimator
             }
 
             #region Colliders
-            if (_colliders != null)
+           /* if (_colliders != null)
             {
                 foreach (ShapeElementCollider collider in _colliders.Colliders.Values)
                 {
                     collider.Transform(TransformationMatrices4x3);
                 }
-            }
+            }*/
             #endregion
 
             foreach (KeyValuePair<string, AttachmentPointAndPose> item in AttachmentPointByCode)
@@ -242,7 +243,8 @@ internal class ProceduralClientAnimator : ClientAnimator
         float[] modelMatrix,
         List<ElementPose>[] nowKeyFrameByAnimation,
         List<ElementPose>[] nextInKeyFrameByAnimation,
-        int depth
+        int depth,
+        float[]? prev = null
     )
     {
         depth++;
@@ -306,9 +308,21 @@ internal class ProceduralClientAnimator : ClientAnimator
             }
 
             elem.GetLocalTransformMatrix(animVersion, localTransformMatrix, outFramePose);
+
             Mat4f.Mul(outFramePose.AnimModelMatrix, outFramePose.AnimModelMatrix, localTransformMatrix);
             CalculateElementTransformMatrices(elem, outFramePose);
 
+            if (prev == null)
+            {
+                prev = new float[16];
+                Mat4f.Identity(prev);
+            }
+
+            if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
+            {
+                //Mat4f.Mul(tmpMatrix, prevLocal, tmpMatrix);
+                collider?.Transform(TransformationMatrices4x3, tmpMatrix);
+            }
 
             #region Colliders
             if (_colliders != null && _colliders.UnprocessedElementsLeft && _colliders.ShapeElementsToProcess.Contains(elem.Name))
@@ -321,10 +335,15 @@ internal class ProceduralClientAnimator : ClientAnimator
 
             /*if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
             {
-                //Mat4f.Mul(tmpMatrix, GetShapeElementModelMatrix(elem), outFramePose.AnimModelMatrix);
-                collider?.Transform(tmpMatrix);
+                //float[] inverse = new float[16];
+                //Mat4f.Invert(inverse, modelMatrix);
+                //Mat4f.Mul(tmpMatrix, outFramePose.AnimModelMatrix, inverse);
+                collider?.Transform(TransformationMatrices4x3, tmpMatrix);
             }*/
             #endregion
+
+            float[] prevNew = new float[16];
+            SetMat(tmpMatrix, prevNew);
 
 
             if (outFramePose.ChildElementPoses != null)
@@ -337,7 +356,8 @@ internal class ProceduralClientAnimator : ClientAnimator
                     outFramePose.AnimModelMatrix,
                     nowChildKeyFrameByAnimation,
                     nextChildKeyFrameByAnimation,
-                    depth
+                    depth,
+                    prevNew
                 );
             }
 

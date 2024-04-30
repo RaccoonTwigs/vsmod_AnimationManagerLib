@@ -134,6 +134,21 @@ public sealed class ShapeElementCollider
         Mat4f.Identity(transformMatrix);
         for (int elementIndex = 0; elementIndex < 16; elementIndex++)
         {
+            int? transformMatricesIndex = GetIndex(jointId, elementIndex);
+            if (transformMatricesIndex != null)
+            {
+                transformMatrix[elementIndex] = TransformationMatrices4x3[transformMatricesIndex.Value];
+            }
+        }
+        return transformMatrix;
+    }
+
+    private float[] GetTransformMatrix(float[] TransformationMatrices4x3)
+    {
+        float[] transformMatrix = new float[16];
+        Mat4f.Identity(transformMatrix);
+        for (int elementIndex = 0; elementIndex < 16; elementIndex++)
+        {
             int? transformMatricesIndex = GetIndex(JointId, elementIndex);
             if (transformMatricesIndex != null)
             {
@@ -254,19 +269,19 @@ public sealed class ShapeElementCollider
         to.Z = to.Z + z * factor;
     }
 
-    public void Transform(float[] transformMatrix4x3)
+    public void Transform(float[] transformMatrix4x3, float[] localMatrix)
     {
         if (Renderer == null) return;
 
         float[] transformMatrix = GetTransformMatrix(ForElement.JointId, transformMatrix4x3);
 
-        DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode(), $"{ForElement.Name}: {transformMatrix[12]:F3}, {transformMatrix[13]:F3}, {transformMatrix[14]:F3}");
+        //DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode(), $"{ForElement.Name}: {transformMatrix[12]:F3}, {transformMatrix[13]:F3}, {transformMatrix[14]:F3}");
 
         Vec4f zeroVector = new(0, 0, 0, 0);
 
         float factor1 = 1f;
         float factor2 = 1f / 16f;
-        float factor3 = 16f;
+        float factor3 = 16;
 
         Vertex0 = new Vec4f(PreVertex0.X * factor1, PreVertex0.Y * factor1, PreVertex0.Z * factor1, 1 * factor1);
         Vertex1 = new Vec4f(PreVertex1.X * factor1, PreVertex1.Y * factor1, PreVertex1.Z * factor1, 1 * factor1);
@@ -277,40 +292,41 @@ public sealed class ShapeElementCollider
         Vertex6 = new Vec4f(PreVertex6.X * factor1, PreVertex6.Y * factor1, PreVertex6.Z * factor1, 1 * factor1);
         Vertex7 = new Vec4f(PreVertex7.X * factor1, PreVertex7.Y * factor1, PreVertex7.Z * factor1, 1 * factor1);
 
-        //DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode() + 1, $"{ForElement.Name}, Vertex0.W: {Vertex0.W}");
+        TransformVector(Vertex0, Vertex0, transformMatrix, zeroVector);
+        TransformVector(Vertex1, Vertex1, transformMatrix, zeroVector);
+        TransformVector(Vertex2, Vertex2, transformMatrix, zeroVector);
+        TransformVector(Vertex3, Vertex3, transformMatrix, zeroVector);
+        TransformVector(Vertex4, Vertex4, transformMatrix, zeroVector);
+        TransformVector(Vertex5, Vertex5, transformMatrix, zeroVector);
+        TransformVector(Vertex6, Vertex6, transformMatrix, zeroVector);
+        TransformVector(Vertex7, Vertex7, transformMatrix, zeroVector);
 
-        float[] transformMatrix2 = GetTransfromMatricesFromParentsAlt(transformMatrix4x3);
+        DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode(), $"{ForElement.Name} current ({ForElement.JointId}): {transformMatrix[12]:F3}, {transformMatrix[13]:F3}, {transformMatrix[14]:F3}, factor: {factor3 * Vertex0.W}");
 
-        //transformMatrix = Mat4f.Mul(transformMatrix, transformMatrix2, transformMatrix);
+        Add(Vertex0, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex0.W);
+        Add(Vertex1, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex1.W);
+        Add(Vertex2, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex2.W);
+        Add(Vertex3, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex3.W);
+        Add(Vertex4, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex4.W);
+        Add(Vertex5, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex5.W);
+        Add(Vertex6, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex6.W);
+        Add(Vertex7, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex7.W);
 
-        /*Vector3 translation1 = GetTransfromMatricesFromParentsAltAlt(transformMatrix4x3);
+        if (ForElement.ParentElement?.JointId > 0)
+        {
+            float[] parentTransformMatrix = GetTransfromMatricesFromParents(transformMatrix4x3);
 
-        Add(Vertex0, translation1.X, translation1.Y, translation1.Z, factor3 * Vertex0.W);
-        Add(Vertex1, translation1.X, translation1.Y, translation1.Z, factor3 * Vertex1.W);
-        Add(Vertex2, translation1.X, translation1.Y, translation1.Z, factor3 * Vertex2.W);
-        Add(Vertex3, translation1.X, translation1.Y, translation1.Z, factor3 * Vertex3.W);
-        Add(Vertex4, translation1.X, translation1.Y, translation1.Z, factor3 * Vertex4.W);
-        Add(Vertex5, translation1.X, translation1.Y, translation1.Z, factor3 * Vertex5.W);
-        Add(Vertex6, translation1.X, translation1.Y, translation1.Z, factor3 * Vertex6.W);
-        Add(Vertex7, translation1.X, translation1.Y, translation1.Z, factor3 * Vertex7.W);*/
+            DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode() + 1, $"{ForElement.Name} parent ({ForElement.ParentElement.JointId}): {parentTransformMatrix[12]:F3}, {parentTransformMatrix[13]:F3}, {parentTransformMatrix[14]:F3}, factor: {-1 * factor3 * Vertex0.W}");
 
-        /*Add(Vertex0, transformMatrix2[12], transformMatrix2[13], transformMatrix2[14], factor3 * Vertex0.W);
-        Add(Vertex1, transformMatrix2[12], transformMatrix2[13], transformMatrix2[14], factor3 * Vertex1.W);
-        Add(Vertex2, transformMatrix2[12], transformMatrix2[13], transformMatrix2[14], factor3 * Vertex2.W);
-        Add(Vertex3, transformMatrix2[12], transformMatrix2[13], transformMatrix2[14], factor3 * Vertex3.W);
-        Add(Vertex4, transformMatrix2[12], transformMatrix2[13], transformMatrix2[14], factor3 * Vertex4.W);
-        Add(Vertex5, transformMatrix2[12], transformMatrix2[13], transformMatrix2[14], factor3 * Vertex5.W);
-        Add(Vertex6, transformMatrix2[12], transformMatrix2[13], transformMatrix2[14], factor3 * Vertex6.W);
-        Add(Vertex7, transformMatrix2[12], transformMatrix2[13], transformMatrix2[14], factor3 * Vertex7.W);*/
-
-        TransformVector(Vertex0, Vertex0, transformMatrix, Origin);
-        TransformVector(Vertex1, Vertex1, transformMatrix, Origin);
-        TransformVector(Vertex2, Vertex2, transformMatrix, Origin);
-        TransformVector(Vertex3, Vertex3, transformMatrix, Origin);
-        TransformVector(Vertex4, Vertex4, transformMatrix, Origin);
-        TransformVector(Vertex5, Vertex5, transformMatrix, Origin);
-        TransformVector(Vertex6, Vertex6, transformMatrix, Origin);
-        TransformVector(Vertex7, Vertex7, transformMatrix, Origin);
+            Add(Vertex0, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex0.W);
+            Add(Vertex1, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex1.W);
+            Add(Vertex2, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex2.W);
+            Add(Vertex3, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex3.W);
+            Add(Vertex4, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex4.W);
+            Add(Vertex5, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex5.W);
+            Add(Vertex6, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex6.W);
+            Add(Vertex7, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex7.W);
+        }
 
         Vertex0 = Transform(ElementMatrix, Vertex0, factor2);
         Vertex1 = Transform(ElementMatrix, Vertex1, factor2);
