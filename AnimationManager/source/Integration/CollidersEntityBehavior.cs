@@ -266,7 +266,7 @@ public sealed class ShapeElementCollider
 
         float factor1 = 1f;
         float factor2 = 1f / 16f;
-        float factor3 = -1f;
+        float factor3 = 16f;
 
         Vertex0 = new Vec4f(PreVertex0.X * factor1, PreVertex0.Y * factor1, PreVertex0.Z * factor1, 1 * factor1);
         Vertex1 = new Vec4f(PreVertex1.X * factor1, PreVertex1.Y * factor1, PreVertex1.Z * factor1, 1 * factor1);
@@ -277,7 +277,7 @@ public sealed class ShapeElementCollider
         Vertex6 = new Vec4f(PreVertex6.X * factor1, PreVertex6.Y * factor1, PreVertex6.Z * factor1, 1 * factor1);
         Vertex7 = new Vec4f(PreVertex7.X * factor1, PreVertex7.Y * factor1, PreVertex7.Z * factor1, 1 * factor1);
 
-        DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode() + 1, $"{ForElement.Name}, Vertex0.W: {Vertex0.W}");
+        //DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode() + 1, $"{ForElement.Name}, Vertex0.W: {Vertex0.W}");
 
         float[] transformMatrix2 = GetTransfromMatricesFromParentsAlt(transformMatrix4x3);
 
