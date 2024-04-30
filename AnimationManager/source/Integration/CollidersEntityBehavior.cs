@@ -1,14 +1,11 @@
-﻿using OpenTK.Compute.OpenCL;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Xml.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
-using VSImGui.Debug;
 
 namespace AnimationManagerLib.Integration;
 
@@ -32,6 +29,9 @@ public sealed class ShapeElementCollider
     public Vec4f PreVertex6 { get; private set; } = new();
     public Vec4f PreVertex7 { get; private set; } = new();
 
+    public Vec4f Origin { get; private set; } = new();
+    public int JointId { get; private set; } = new();
+
     public ShapeElement ForElement { get; private set; }
 
     public EntityAgent? Entity { get; set; } = null;
@@ -40,6 +40,7 @@ public sealed class ShapeElementCollider
     public ShapeElementCollider(ShapeElement element)
     {
         ForElement = element;
+        JointId = element.JointId;
         SetElementVertices();
     }
 
@@ -48,6 +49,7 @@ public sealed class ShapeElementCollider
         Vec4f from = new((float)ForElement.From[0], (float)ForElement.From[1], (float)ForElement.From[2], 1);
         Vec4f to = new((float)ForElement.To[0], (float)ForElement.To[1], (float)ForElement.To[2], 1);
         Vec4f diagonal = to - from;
+        Vec4f origin = new((float)ForElement.RotationOrigin[0], (float)ForElement.RotationOrigin[1], (float)ForElement.RotationOrigin[2], 1);
 
         PreVertex0 = from;
         PreVertex7 = to;
@@ -61,6 +63,13 @@ public sealed class ShapeElementCollider
         Matrixf elementMatrix = new Matrixf().Identity();
         if (ForElement.ParentElement != null) GetElementTransformMatrix(elementMatrix, ForElement.ParentElement);
 
+        elementMatrix
+            .Translate(ForElement.RotationOrigin[0], ForElement.RotationOrigin[1], ForElement.RotationOrigin[2])
+            .RotateX((float)ForElement.RotationX * GameMath.DEG2RAD)
+            .RotateY((float)ForElement.RotationY * GameMath.DEG2RAD)
+            .RotateZ((float)ForElement.RotationZ * GameMath.DEG2RAD)
+            .Translate(0f - ForElement.RotationOrigin[0], 0f - ForElement.RotationOrigin[1], 0f - ForElement.RotationOrigin[2]);
+
         PreVertex0 = Transform(elementMatrix, PreVertex0, 1 / 16f);
         PreVertex1 = Transform(elementMatrix, PreVertex1, 1 / 16f);
         PreVertex2 = Transform(elementMatrix, PreVertex2, 1 / 16f);
@@ -69,6 +78,7 @@ public sealed class ShapeElementCollider
         PreVertex5 = Transform(elementMatrix, PreVertex5, 1 / 16f);
         PreVertex6 = Transform(elementMatrix, PreVertex6, 1 / 16f);
         PreVertex7 = Transform(elementMatrix, PreVertex7, 1 / 16f);
+        Origin = Transform(elementMatrix, origin, 1 / 16f);
     }
 
     public static Vec4f Transform(Matrixf matrix, Vec4f vector, float scale)
@@ -80,41 +90,164 @@ public sealed class ShapeElementCollider
 
     public static string PrintVector(Vec4f vector) => $"({vector.X}, {vector.Y}, {vector.Z})";
 
-    public void GetElementTransformMatrix(Matrixf matrix, ShapeElement element, int depth = 0)
+    public void GetElementTransformMatrix(Matrixf matrix, ShapeElement element)
     {
         if (element.ParentElement != null)
         {
-            GetElementTransformMatrix(matrix, element.ParentElement, depth + 1);
+            GetElementTransformMatrix(matrix, element.ParentElement);
         }
 
-        matrix.Translate(element.From[0], element.From[1], element.From[2])
-            .Translate(element.RotationOrigin[0] / 16, element.RotationOrigin[1] / 16, element.RotationOrigin[2] / 16)
+        matrix
+            .Translate(element.RotationOrigin[0], element.RotationOrigin[1], element.RotationOrigin[2])
             .RotateX((float)element.RotationX * GameMath.DEG2RAD)
             .RotateY((float)element.RotationY * GameMath.DEG2RAD)
             .RotateZ((float)element.RotationZ * GameMath.DEG2RAD)
-            .Translate(0f - element.RotationOrigin[0] / 16, 0f - element.RotationOrigin[1] / 16, 0f - element.RotationOrigin[2] / 16);
+            .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2])
+            .Translate(element.From[0], element.From[1], element.From[2]);
+    }
+
+    /*
+        int index = 12 * element.JointId;
+        TransformationMatrices4x3[index++] = tmpMatrix[0];
+        TransformationMatrices4x3[index++] = tmpMatrix[1];
+        TransformationMatrices4x3[index++] = tmpMatrix[2];
+        TransformationMatrices4x3[index++] = tmpMatrix[4];
+        TransformationMatrices4x3[index++] = tmpMatrix[5];
+        TransformationMatrices4x3[index++] = tmpMatrix[6];
+        TransformationMatrices4x3[index++] = tmpMatrix[8];
+        TransformationMatrices4x3[index++] = tmpMatrix[9];
+        TransformationMatrices4x3[index++] = tmpMatrix[10];
+        TransformationMatrices4x3[index++] = tmpMatrix[12];
+        TransformationMatrices4x3[index++] = tmpMatrix[13];
+        TransformationMatrices4x3[index] = tmpMatrix[14];
+     */
+
+    private int? GetIndex(int jointId, int matrixElementIndex)
+    {
+        int index = 12 * jointId;
+        int offset = matrixElementIndex switch
+        {
+            0 => 0,
+            1 => 1,
+            2 => 2,
+            4 => 3,
+            5 => 4,
+            6 => 5,
+            8 => 6,
+            9 => 7,
+            10 => 8,
+            12 => 9,
+            13 => 10,
+            14 => 11,
+            _ => -1
+        };
+
+        if (offset < 0) return null;
+
+        return index + offset;
+    }
+
+    private float[] GetTransformMatrix(int jointId, float[] TransformationMatrices4x3)
+    {
+        float[] transformMatrix = new float[16];
+        Mat4f.Identity(transformMatrix);
+        for (int elementIndex = 0; elementIndex < 16; elementIndex++)
+        {
+            int? transformMatricesIndex = GetIndex(JointId, elementIndex);
+            if (transformMatricesIndex != null)
+            {
+                transformMatrix[elementIndex] = TransformationMatrices4x3[transformMatricesIndex.Value];
+            }
+        }
+        return transformMatrix;
+    }
+
+    private List<int> GetJointIds()
+    {
+        List<ShapeElement> parents = ForElement.GetParentPath();
+        List<int> jointIds = new() { JointId };
+
+        foreach (ShapeElement parent in parents)
+        {
+            if (jointIds[^1] != parent.JointId)
+            {
+                jointIds.Add(parent.JointId);
+            }
+        }
+
+        return jointIds;
+    }
+
+    private float[] GetTransfromMatricesFromParents(float[] TransformationMatrices4x3)
+    {
+        float[] transformMatrix = new float[16];
+        Mat4f.Identity(transformMatrix);
+
+        List<int> jointIds = GetJointIds();
+
+        foreach (int jointId in jointIds)
+        {
+            float[] parentTransform = GetTransformMatrix(jointId, TransformationMatrices4x3);
+            Mat4f.Mul(transformMatrix, parentTransform, transformMatrix);
+        }
+
+        return transformMatrix;
+    }
+
+    public void TransformByJoint(float[] TransformationMatrices4x3)
+    {
+        float[] transformMatrix = GetTransformMatrix(JointId, TransformationMatrices4x3);
+        Vec4f zeroVector = new(0, 0, 0, 0);
+        float[] mm = new float[16];
+        Mat4f.Identity(mm);
+        //Mat4f.Mul(mm, Renderer.ModelMat, transformMatrix);
+        //mm = Renderer.ModelMat;
+        //mm = transformMatrix;
+
+        mm = transformMatrix;
+
+        TransformVector(PreVertex0, Vertex0, mm, Origin);
+        TransformVector(PreVertex1, Vertex1, mm, Origin);
+        TransformVector(PreVertex2, Vertex2, mm, Origin);
+        TransformVector(PreVertex3, Vertex3, mm, Origin);
+        TransformVector(PreVertex4, Vertex4, mm, Origin);
+        TransformVector(PreVertex5, Vertex5, mm, Origin);
+        TransformVector(PreVertex6, Vertex6, mm, Origin);
+        TransformVector(PreVertex7, Vertex7, mm, Origin);
+
+        mm = Renderer.ModelMat;
+
+        TransformVector(Vertex0, Vertex0, mm, zeroVector);
+        TransformVector(Vertex1, Vertex1, mm, zeroVector);
+        TransformVector(Vertex2, Vertex2, mm, zeroVector);
+        TransformVector(Vertex3, Vertex3, mm, zeroVector);
+        TransformVector(Vertex4, Vertex4, mm, zeroVector);
+        TransformVector(Vertex5, Vertex5, mm, zeroVector);
+        TransformVector(Vertex6, Vertex6, mm, zeroVector);
+        TransformVector(Vertex7, Vertex7, mm, zeroVector);
     }
 
     public void Transform(float[] matrix)
     {
         if (Renderer == null) return;
-        
+
         float[] mm = new float[16];
 
         Mat4f.Identity(mm);
 
-        //Mat4f.Mul(mm, Renderer.ModelMat, matrix);
-        mm = Renderer.ModelMat;
+        Mat4f.Mul(mm, matrix, Renderer.ModelMat);
+        //mm = Renderer.ModelMat;
+        //mm = matrix;
 
 
-        TransformVector(PreVertex0, Vertex0, mm);
-        TransformVector(PreVertex1, Vertex1, mm);
-        TransformVector(PreVertex2, Vertex2, mm);
-        TransformVector(PreVertex3, Vertex3, mm);
-        TransformVector(PreVertex4, Vertex4, mm);
-        TransformVector(PreVertex5, Vertex5, mm);
-        TransformVector(PreVertex6, Vertex6, mm);
-        TransformVector(PreVertex7, Vertex7, mm);
+        TransformVector(PreVertex0, Vertex0, mm, Origin);
+        TransformVector(PreVertex1, Vertex1, mm, Origin);
+        TransformVector(PreVertex2, Vertex2, mm, Origin);
+        TransformVector(PreVertex3, Vertex3, mm, Origin);
+        TransformVector(PreVertex4, Vertex4, mm, Origin);
+        TransformVector(PreVertex5, Vertex5, mm, Origin);
+        TransformVector(PreVertex6, Vertex6, mm, Origin);
+        TransformVector(PreVertex7, Vertex7, mm, Origin);
     }
 
 #if DEBUG
@@ -148,19 +281,19 @@ public sealed class ShapeElementCollider
         api.Render.RenderLine(playerPos, start.X + deltaPos.X, start.Y + deltaPos.Y, start.Z + deltaPos.Z, end.X + deltaPos.X, end.Y + deltaPos.Y, end.Z + deltaPos.Z, color);
     }
 #endif
-    private void TransformVector(Vec4f input, Vec4f output, float[] modelMatrix) //, EntityPos playerPos)
+    private void TransformVector(Vec4f input, Vec4f output, float[] modelMatrix, Vec4f origin) //, EntityPos playerPos)
     {
-        /*Vec4f interm = new(
-            input.X + (float)Entity.Pos.X,
-            input.Y + (float)Entity.Pos.Y,
-            input.Z + (float)Entity.Pos.Z,
-            input.W);*/
+        Vec4f interm = new(
+            input.X - origin.X,
+            input.Y - origin.Y,
+            input.Z - origin.Z,
+            input.W);
 
-        Mat4f.MulWithVec4(modelMatrix, input, output);
+        Mat4f.MulWithVec4(modelMatrix, interm, output);
 
-        /*output.X -= (float)Entity.Pos.X;
-        output.Y -= (float)Entity.Pos.Y;
-        output.Z -= (float)Entity.Pos.Z;*/
+        output.X = output.X + origin.X;
+        output.Y = output.Y + origin.Y;
+        output.Z = output.Z + origin.Z;
     }
 
 }

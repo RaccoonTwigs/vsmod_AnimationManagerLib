@@ -167,6 +167,9 @@ internal class ProceduralClientAnimator : ClientAnimator
                 }
             }
 
+            float[] tmp = new float[16];
+            Mat4f.Identity(tmp);
+
             CalculateMatrices(num, dt, RootPoses, weightsByAnimationAndElement[0], Mat4f.Create(), frameByDepthByAnimation[0], nextFrameTransformsByAnimation[0], 0);
 
             for (int j = 0; j < GlobalConstants.MaxAnimatedElements; j++)
@@ -179,6 +182,16 @@ internal class ProceduralClientAnimator : ClientAnimator
                     }
                 }
             }
+
+            #region Colliders
+            if (_colliders != null)
+            {
+                foreach (ShapeElementCollider collider in _colliders.Colliders.Values)
+                {
+                    collider.TransformByJoint(TransformationMatrices4x3);
+                }
+            }
+            #endregion
 
             foreach (KeyValuePair<string, AttachmentPointAndPose> item in AttachmentPointByCode)
             {
@@ -237,7 +250,6 @@ internal class ProceduralClientAnimator : ClientAnimator
         List<ElementPose>[] nextChildKeyFrameByAnimation = nextFrameTransformsByAnimation[depth];
         ShapeElementWeights[][] childWeightsByAnimationAndElement = weightsByAnimationAndElement_this[depth];
 
-
         for (int childPoseIndex = 0; childPoseIndex < outFrame.Count; childPoseIndex++)
         {
             ElementPose outFramePose = outFrame[childPoseIndex];
@@ -295,8 +307,8 @@ internal class ProceduralClientAnimator : ClientAnimator
 
             elem.GetLocalTransformMatrix(animVersion, localTransformMatrix, outFramePose);
             Mat4f.Mul(outFramePose.AnimModelMatrix, outFramePose.AnimModelMatrix, localTransformMatrix);
-
             CalculateElementTransformMatrices(elem, outFramePose);
+
 
             #region Colliders
             if (_colliders != null && _colliders.UnprocessedElementsLeft && _colliders.ShapeElementsToProcess.Contains(elem.Name))
@@ -306,14 +318,14 @@ internal class ProceduralClientAnimator : ClientAnimator
                 _colliders.UnprocessedElementsLeft = _colliders.ShapeElementsToProcess.Count > 0;
                 Console.WriteLine($"CollidersEntityBehavior: {elem.Name} processed");
             }
-            if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
+
+            /*if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
             {
-                Mat4f.Mul(tmpMatrix, outFramePose.AnimModelMatrix, elem.inverseModelTransform);
+                Mat4f.Mul(tmpMatrix, GetShapeElementModelMatrix(elem), outFramePose.AnimModelMatrix);
                 collider?.Transform(tmpMatrix);
-            }
+            }*/
             #endregion
 
-            
 
             if (outFramePose.ChildElementPoses != null)
             {
@@ -338,6 +350,7 @@ internal class ProceduralClientAnimator : ClientAnimator
     {
         List<ShapeElement> parentPath = element.GetParentPath();
         float[] array = Mat4f.Create();
+        Mat4f.Identity(array);
         for (int i = 0; i < parentPath.Count; i++)
         {
             float[] localTransformMatrix = parentPath[i].GetLocalTransformMatrix(0);
@@ -353,6 +366,14 @@ internal class ProceduralClientAnimator : ClientAnimator
         for (int i = 0; i < 16; i++)
         {
             pose.AnimModelMatrix[i] = modelMatrix[i];
+        }
+    }
+
+    private static void SetMat(float[] from, float[] to)
+    {
+        for (int i = 0; i < 16; i++)
+        {
+            to[i] = from[i];
         }
     }
 
