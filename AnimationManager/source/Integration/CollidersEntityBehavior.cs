@@ -61,6 +61,7 @@ public sealed class ShapeElementCollider
         PreVertex6 = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
 
         Matrixf elementMatrix = new Matrixf().Identity();
+        elementMatrix.Translate(-8, 0, -8);
         if (ForElement.ParentElement != null) GetElementTransformMatrix(elementMatrix, ForElement.ParentElement);
 
         elementMatrix
@@ -105,22 +106,6 @@ public sealed class ShapeElementCollider
             .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2])
             .Translate(element.From[0], element.From[1], element.From[2]);
     }
-
-    /*
-        int index = 12 * element.JointId;
-        TransformationMatrices4x3[index++] = tmpMatrix[0];
-        TransformationMatrices4x3[index++] = tmpMatrix[1];
-        TransformationMatrices4x3[index++] = tmpMatrix[2];
-        TransformationMatrices4x3[index++] = tmpMatrix[4];
-        TransformationMatrices4x3[index++] = tmpMatrix[5];
-        TransformationMatrices4x3[index++] = tmpMatrix[6];
-        TransformationMatrices4x3[index++] = tmpMatrix[8];
-        TransformationMatrices4x3[index++] = tmpMatrix[9];
-        TransformationMatrices4x3[index++] = tmpMatrix[10];
-        TransformationMatrices4x3[index++] = tmpMatrix[12];
-        TransformationMatrices4x3[index++] = tmpMatrix[13];
-        TransformationMatrices4x3[index] = tmpMatrix[14];
-     */
 
     private int? GetIndex(int jointId, int matrixElementIndex)
     {
@@ -194,8 +179,44 @@ public sealed class ShapeElementCollider
         return transformMatrix;
     }
 
+    private float[] GetParentTransfromMatrices(float[] TransformationMatrices4x3)
+    {
+        float[] transformMatrix = new float[16];
+        Mat4f.Identity(transformMatrix);
+
+        List<int> jointIds = GetJointIds();
+        jointIds.Remove(0);
+
+        foreach (int jointId in jointIds)
+        {
+            float[] parentTransform = GetTransformMatrix(jointId, TransformationMatrices4x3);
+            Mat4f.Mul(transformMatrix, parentTransform, transformMatrix);
+            break;
+        }
+
+        return transformMatrix;
+    }
+
+    public void GetElementTransformMatrixA(Matrixf matrix, ShapeElement element, float[] TransformationMatrices4x3)
+    {
+        if (element.ParentElement != null)
+        {
+            GetElementTransformMatrixA(matrix, element.ParentElement, TransformationMatrices4x3);
+        }
+
+        matrix
+            .Translate(element.RotationOrigin[0], element.RotationOrigin[1], element.RotationOrigin[2])
+            .RotateX((float)element.RotationX * GameMath.DEG2RAD)
+            .RotateY((float)element.RotationY * GameMath.DEG2RAD)
+            .RotateZ((float)element.RotationZ * GameMath.DEG2RAD)
+            .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2])
+            .Translate(element.From[0], element.From[1], element.From[2]);
+    }
+
     public void TransformByJoint(float[] TransformationMatrices4x3)
     {
+        if (Renderer == null) return;
+        
         float[] transformMatrix = GetTransformMatrix(JointId, TransformationMatrices4x3);
         Vec4f zeroVector = new(0, 0, 0, 0);
         float[] mm = new float[16];
@@ -205,6 +226,22 @@ public sealed class ShapeElementCollider
         //mm = transformMatrix;
 
         mm = transformMatrix;
+
+        Vec4f originTransformed = new();
+
+        float[] mmForOrigin = new float[16];
+        Mat4f.Identity(mmForOrigin);
+        int? parentJointId = ForElement.ParentElement?.JointId;
+        if (parentJointId != null)
+        {
+            mmForOrigin = GetTransformMatrix(parentJointId.Value, TransformationMatrices4x3);
+        }
+
+        /*float[] mmInverted = new float[16];*/
+
+        //Mat4f.Invert(mmInverted, mmForOrigin);
+
+        //TransformVector(Origin, originTransformed, mmForOrigin, Origin);
 
         TransformVector(PreVertex0, Vertex0, mm, Origin);
         TransformVector(PreVertex1, Vertex1, mm, Origin);
@@ -225,29 +262,6 @@ public sealed class ShapeElementCollider
         TransformVector(Vertex5, Vertex5, mm, zeroVector);
         TransformVector(Vertex6, Vertex6, mm, zeroVector);
         TransformVector(Vertex7, Vertex7, mm, zeroVector);
-    }
-
-    public void Transform(float[] matrix)
-    {
-        if (Renderer == null) return;
-
-        float[] mm = new float[16];
-
-        Mat4f.Identity(mm);
-
-        Mat4f.Mul(mm, matrix, Renderer.ModelMat);
-        //mm = Renderer.ModelMat;
-        //mm = matrix;
-
-
-        TransformVector(PreVertex0, Vertex0, mm, Origin);
-        TransformVector(PreVertex1, Vertex1, mm, Origin);
-        TransformVector(PreVertex2, Vertex2, mm, Origin);
-        TransformVector(PreVertex3, Vertex3, mm, Origin);
-        TransformVector(PreVertex4, Vertex4, mm, Origin);
-        TransformVector(PreVertex5, Vertex5, mm, Origin);
-        TransformVector(PreVertex6, Vertex6, mm, Origin);
-        TransformVector(PreVertex7, Vertex7, mm, Origin);
     }
 
 #if DEBUG
