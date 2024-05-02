@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
@@ -51,6 +50,11 @@ internal static class AnimatorPatch
         new Harmony(harmonyId).Unpatch(typeof(EntityShapeRenderer).GetMethod("RenderHeldItem", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("updateEyeHeight", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("Initialize", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
+
+#if DEBUG
+        new Harmony(harmonyId).Unpatch(typeof(EntityShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all), HarmonyPatchType.Postfix, harmonyId);
+        new Harmony(harmonyId).Unpatch(typeof(EntityPlayerShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all), HarmonyPatchType.Postfix, harmonyId);
+#endif
     }
 
     private static AnimationManager? _manager;
@@ -125,8 +129,13 @@ internal static class AnimatorPatch
 #if DEBUG
     private static void RenderColliders(EntityShapeRenderer __instance)
     {
-        EntityAgent agent = GetEntityAgent(__instance);
+        IShaderProgram? currentShader = _coreClientAPI?.Render.CurrentActiveShader;
+        currentShader?.Stop();
+
+        EntityAgent? agent = GetEntityAgent(__instance);
         agent?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, agent, __instance);
+
+        currentShader?.Use();
     }
     private static void RenderCollidersPlayer(EntityPlayerShapeRenderer __instance)
     {
@@ -141,7 +150,7 @@ internal static class AnimatorPatch
     // Returns protected eagent field using reflection
     private static EntityAgent? GetEntityAgent(EntityShapeRenderer renderer)
     {
-        return (EntityAgent)typeof(EntityShapeRenderer)
+        return (EntityAgent?)typeof(EntityShapeRenderer)
             .GetField("eagent", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.GetValue(renderer);
     }

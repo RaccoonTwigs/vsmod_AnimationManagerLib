@@ -1,5 +1,4 @@
-﻿using OpenTK.Graphics.OpenGL;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -184,16 +183,6 @@ internal class ProceduralClientAnimator : ClientAnimator
                 }
             }
 
-            #region Colliders
-           /* if (_colliders != null)
-            {
-                foreach (ShapeElementCollider collider in _colliders.Colliders.Values)
-                {
-                    collider.Transform(TransformationMatrices4x3);
-                }
-            }*/
-            #endregion
-
             foreach (KeyValuePair<string, AttachmentPointAndPose> item in AttachmentPointByCode)
             {
                 for (int l = 0; l < 16; l++)
@@ -243,8 +232,7 @@ internal class ProceduralClientAnimator : ClientAnimator
         float[] modelMatrix,
         List<ElementPose>[] nowKeyFrameByAnimation,
         List<ElementPose>[] nextInKeyFrameByAnimation,
-        int depth,
-        float[]? prev = null
+        int depth
     )
     {
         depth++;
@@ -308,28 +296,20 @@ internal class ProceduralClientAnimator : ClientAnimator
             }
 
             elem.GetLocalTransformMatrix(animVersion, localTransformMatrix, outFramePose);
-
             Mat4f.Mul(outFramePose.AnimModelMatrix, outFramePose.AnimModelMatrix, localTransformMatrix);
             CalculateElementTransformMatrices(elem, outFramePose);
 
-            if (prev == null)
-            {
-                prev = new float[16];
-                Mat4f.Identity(prev);
-            }
-
             #region Colliders
-            if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
-            {
-                collider?.Transform(TransformationMatrices4x3);
-            }
-            
             if (_colliders != null && _colliders.UnprocessedElementsLeft && _colliders.ShapeElementsToProcess.Contains(elem.Name))
             {
                 _colliders.Colliders.Add(elem.Name, new ShapeElementCollider(elem));
                 _colliders.ShapeElementsToProcess.Remove(elem.Name);
                 _colliders.UnprocessedElementsLeft = _colliders.ShapeElementsToProcess.Count > 0;
-                Console.WriteLine($"CollidersEntityBehavior: {elem.Name} processed");
+            }
+
+            if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
+            {
+                collider?.Transform(TransformationMatrices4x3);
             }
             #endregion
 
@@ -347,29 +327,13 @@ internal class ProceduralClientAnimator : ClientAnimator
                     outFramePose.AnimModelMatrix,
                     nowChildKeyFrameByAnimation,
                     nextChildKeyFrameByAnimation,
-                    depth,
-                    prevNew
+                    depth
                 );
             }
 
         }
 
         return false;
-    }
-
-    public float[] GetShapeElementModelMatrix(ShapeElement element)
-    {
-        List<ShapeElement> parentPath = element.GetParentPath();
-        float[] array = Mat4f.Create();
-        Mat4f.Identity(array);
-        for (int i = 0; i < parentPath.Count; i++)
-        {
-            float[] localTransformMatrix = parentPath[i].GetLocalTransformMatrix(0);
-            Mat4f.Mul(array, array, localTransformMatrix);
-        }
-
-        Mat4f.Mul(array, array, element.GetLocalTransformMatrix(0));
-        return array;
     }
 
     private static void SetMat(ElementPose pose, float[] modelMatrix)

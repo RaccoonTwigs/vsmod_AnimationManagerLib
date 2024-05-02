@@ -7,34 +7,49 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
-using VSImGui.Debug;
 
 namespace AnimationManagerLib.Integration;
 
 public sealed class ShapeElementCollider
 {
-    public Vector4[] ElementVertices { get; } = new Vector4[8];
-    public Vector4[] InworldVertices { get; } = new Vector4[8];
+    public const int VertexCount = 8;
+    public Vector4[] ElementVertices { get; } = new Vector4[VertexCount];
+    public Vector4[] InworldVertices { get; } = new Vector4[VertexCount];
     public float[] ElementMatrix { get; private set; } = new float[16];
-    
+    public int JointId { get; private set; }
 
-    public ShapeElement ForElement { get; private set; }
-
-    public EntityAgent? Entity { get; set; } = null;
     public EntityShapeRenderer? Renderer { get; set; } = null;
 
     public ShapeElementCollider(ShapeElement element)
     {
-        ForElement = element;
-        SetElementVertices();
+        JointId = element.JointId;
+        SetElementVertices(element);
     }
 
-    public void SetElementVertices()
+    public void Transform(float[] transformMatrix4x3)
     {
-        Vector4 from = new((float)ForElement.From[0], (float)ForElement.From[1], (float)ForElement.From[2], 1);
-        Vector4 to = new((float)ForElement.To[0], (float)ForElement.To[1], (float)ForElement.To[2], 1);
+        if (Renderer == null) return;
+
+        float[] transformMatrix = GetTransformMatrix(JointId, transformMatrix4x3);
+        Vector4 offset = new(transformMatrix[12], transformMatrix[13], transformMatrix[14], 0);
+        Vector4 fullModelOffset = new(-0.5f, 0, -0.5f, 0);
+
+        for (int vertex = 0; vertex < VertexCount; vertex++)
+        {
+            InworldVertices[vertex] = ElementVertices[vertex] / 16f;
+            InworldVertices[vertex] = MultiplyVectorByMatrix(ElementMatrix, InworldVertices[vertex]);
+            InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, InworldVertices[vertex]);
+            InworldVertices[vertex] += offset + fullModelOffset;
+            InworldVertices[vertex] = MultiplyVectorByMatrix(Renderer.ModelMat, InworldVertices[vertex]);
+        }
+    }
+
+    private void SetElementVertices(ShapeElement element)
+    {
+        Vector4 from = new((float)element.From[0], (float)element.From[1], (float)element.From[2], 1);
+        Vector4 to = new((float)element.To[0], (float)element.To[1], (float)element.To[2], 1);
         Vector4 diagonal = to - from;
-  
+
         ElementVertices[0] = from;
         ElementVertices[7] = to;
         ElementVertices[1] = new(from.X + diagonal.X, from.Y, from.Z, from.W);
@@ -47,27 +62,19 @@ public sealed class ShapeElementCollider
         Mat4f.Identity(ElementMatrix);
 
         Matrixf temporaryMatrix = new(ElementMatrix);
-        if (ForElement.ParentElement != null) GetElementTransformMatrix(temporaryMatrix, ForElement.ParentElement);
+        if (element.ParentElement != null) GetElementTransformMatrix(temporaryMatrix, element.ParentElement);
 
         temporaryMatrix
-            .Translate(ForElement.RotationOrigin[0], ForElement.RotationOrigin[1], ForElement.RotationOrigin[2])
-            .RotateX((float)ForElement.RotationX * GameMath.DEG2RAD)
-            .RotateY((float)ForElement.RotationY * GameMath.DEG2RAD)
-            .RotateZ((float)ForElement.RotationZ * GameMath.DEG2RAD)
-            .Translate(0f - ForElement.RotationOrigin[0], 0f - ForElement.RotationOrigin[1], 0f - ForElement.RotationOrigin[2]);
+            .Translate(element.RotationOrigin[0], element.RotationOrigin[1], element.RotationOrigin[2])
+            .RotateX((float)element.RotationX * GameMath.DEG2RAD)
+            .RotateY((float)element.RotationY * GameMath.DEG2RAD)
+            .RotateZ((float)element.RotationZ * GameMath.DEG2RAD)
+            .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2]);
 
         ElementMatrix = temporaryMatrix.Values;
     }
-    public static Vec4f Transform(Matrixf matrix, Vec4f vector, float scale)
-    {
-        Vec4f crutch = new();
-        Mat4f.MulWithVec4(matrix.Values, vector, crutch);
-        return crutch * scale;
-    }
 
-    public static string PrintVector(Vec4f vector) => $"({vector.X}, {vector.Y}, {vector.Z})";
-
-    public void GetElementTransformMatrix(Matrixf matrix, ShapeElement element)
+    private static void GetElementTransformMatrix(Matrixf matrix, ShapeElement element)
     {
         if (element.ParentElement != null)
         {
@@ -82,8 +89,7 @@ public sealed class ShapeElementCollider
             .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2])
             .Translate(element.From[0], element.From[1], element.From[2]);
     }
-
-    private int? GetIndex(int jointId, int matrixElementIndex)
+    private static int? GetIndex(int jointId, int matrixElementIndex)
     {
         int index = 12 * jointId;
         int offset = matrixElementIndex switch
@@ -107,8 +113,7 @@ public sealed class ShapeElementCollider
 
         return index + offset;
     }
-
-    private float[] GetTransformMatrix(int jointId, float[] TransformationMatrices4x3)
+    private static float[] GetTransformMatrix(int jointId, float[] TransformationMatrices4x3)
     {
         float[] transformMatrix = new float[16];
         Mat4f.Identity(transformMatrix);
@@ -122,8 +127,7 @@ public sealed class ShapeElementCollider
         }
         return transformMatrix;
     }
-
-    public void GetElementTransformMatrixA(Matrixf matrix, ShapeElement element, float[] TransformationMatrices4x3)
+    private static void GetElementTransformMatrixA(Matrixf matrix, ShapeElement element, float[] TransformationMatrices4x3)
     {
         if (element.ParentElement != null)
         {
@@ -138,31 +142,20 @@ public sealed class ShapeElementCollider
             .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2])
             .Translate(element.From[0], element.From[1], element.From[2]);
     }
-
-    public static void Add(Vec4f to, float x, float y, float z, float factor)
+    private static Vector4 MultiplyVectorByMatrix(float[] matrix, Vector4 vector)
     {
-        to.X = to.X + x * factor;
-        to.Y = to.Y + y * factor;
-        to.Z = to.Z + z * factor;
-    }
-
-    public void Transform(float[] transformMatrix4x3)
-    {
-        if (Renderer == null) return;
-
-        float[] transformMatrix = GetTransformMatrix(ForElement.JointId, transformMatrix4x3);
-        Vector4 offset = new(transformMatrix[12], transformMatrix[13], transformMatrix[14], 0);
-        Vector4 fullModelOffset = new(-0.5f, 0, -0.5f, 0);
-
-        for (int vertex = 0; vertex < 8; vertex++)
+        Vector4 result = new(0, 0, 0, 0);
+        for (int i = 0; i < 4; i++)
         {
-            InworldVertices[vertex] = ElementVertices[vertex] / 16f;
-            InworldVertices[vertex] = MultiplyVectorByMatrix(ElementMatrix, InworldVertices[vertex]);
-            InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, InworldVertices[vertex]);
-            InworldVertices[vertex] += offset + fullModelOffset;
-            InworldVertices[vertex] = MultiplyVectorByMatrix(Renderer.ModelMat, InworldVertices[vertex]);
+            for (int j = 0; j < 4; j++)
+            {
+                result[i] += matrix[4 * j + i] * vector[j];
+            }
         }
+        return result;
     }
+
+
 #if DEBUG
     public void Render(ICoreClientAPI api, EntityAgent entityPlayer, int color = ColorUtil.WhiteArgb)
     {
@@ -192,41 +185,22 @@ public sealed class ShapeElementCollider
         api.Render.RenderLine(playerPos, start.X + deltaPos.X, start.Y + deltaPos.Y, start.Z + deltaPos.Z, end.X + deltaPos.X, end.Y + deltaPos.Y, end.Z + deltaPos.Z, color);
     }
 #endif
-    public static Vector4 MultiplyVectorByMatrix(float[] matrix, Vector4 vector)
-    {
-        Vector4 result = new(0, 0, 0, 0);
-        for (int i = 0; i < 4; i++)
-        {
-            for (int j = 0; j < 4; j++)
-            {
-                result[i] += matrix[4 * j + i] * vector[j];
-            }
-        }
-        return result;
-    }
-
 }
 
 public sealed class CollidersEntityBehavior : EntityBehavior
 {
     public CollidersEntityBehavior(Entity entity) : base(entity)
     {
-        Console.WriteLine("****************************************************************");
-        Console.WriteLine($"CollidersEntityBehavior created for: {(entity as EntityPlayer)?.GetName()}");
     }
 
     public override void Initialize(EntityProperties properties, JsonObject attributes)
     {
-        Console.WriteLine($"CollidersEntityBehavior Initialize: {attributes}");
-
         if (attributes.KeyExists("colliderShapeElements"))
         {
             HasOBBCollider = true;
             ShapeElementsToProcess = new(attributes["colliderShapeElements"].AsArray(Array.Empty<string>()));
             UnprocessedElementsLeft = true;
         }
-
-        Console.WriteLine("****************************************************************");
     }
 
     public bool HasOBBCollider { get; private set; } = false;
@@ -238,25 +212,11 @@ public sealed class CollidersEntityBehavior : EntityBehavior
 #if DEBUG
     public void Render(ICoreClientAPI api, EntityAgent entityPlayer, EntityShapeRenderer renderer, int color = ColorUtil.WhiteArgb)
     {
-        /*if (!HasOBBCollider) return;
-        
-        foreach (ShapeElementCollider collider in Colliders.Values)
-        {
-            collider.Renderer = renderer;
-            collider.Entity = entityPlayer;
-            collider.SetElementVertices();
-            collider.Render(api, entityPlayer, color);
-        }*/
-    }
-    public void Render(ICoreClientAPI api, EntityAgent entityPlayer, EntityPlayerShapeRenderer renderer, int color = ColorUtil.WhiteArgb)
-    {
         if (!HasOBBCollider) return;
 
         foreach (ShapeElementCollider collider in Colliders.Values)
         {
             collider.Renderer = renderer;
-            collider.Entity = entityPlayer;
-            collider.SetElementVertices();
             collider.Render(api, entityPlayer, color);
         }
     }
