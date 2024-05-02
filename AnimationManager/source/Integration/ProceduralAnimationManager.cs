@@ -318,13 +318,12 @@ internal class ProceduralClientAnimator : ClientAnimator
                 Mat4f.Identity(prev);
             }
 
+            #region Colliders
             if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
             {
-                //Mat4f.Mul(tmpMatrix, prevLocal, tmpMatrix);
-                collider?.Transform(TransformationMatrices4x3, tmpMatrix);
+                collider?.Transform(TransformationMatrices4x3);
             }
-
-            #region Colliders
+            
             if (_colliders != null && _colliders.UnprocessedElementsLeft && _colliders.ShapeElementsToProcess.Contains(elem.Name))
             {
                 _colliders.Colliders.Add(elem.Name, new ShapeElementCollider(elem));
