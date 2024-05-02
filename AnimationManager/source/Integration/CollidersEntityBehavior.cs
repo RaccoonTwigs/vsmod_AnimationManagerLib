@@ -65,7 +65,7 @@ public sealed class ShapeElementCollider
         PreVertex6 = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
 
         ElementMatrix = new Matrixf().Identity();
-        ElementMatrix.Translate(-8, 0, -8);
+        //ElementMatrix.Translate(-8, 0, -8);
         if (ForElement.ParentElement != null) GetElementTransformMatrix(ElementMatrix, ForElement.ParentElement);
 
         Origin = origin;
@@ -190,7 +190,7 @@ public sealed class ShapeElementCollider
         return transformMatrix;
     }
 
-    private Vector3 GetTransfromMatricesFromParentsAltAlt(float[] TransformationMatrices4x3)
+    private Vector3 GetTranslationFromParents(float[] TransformationMatrices4x3)
     {
         Vector3 result = new(0, 0, 0);
 
@@ -292,41 +292,36 @@ public sealed class ShapeElementCollider
         Vertex6 = new Vec4f(PreVertex6.X * factor1, PreVertex6.Y * factor1, PreVertex6.Z * factor1, 1 * factor1);
         Vertex7 = new Vec4f(PreVertex7.X * factor1, PreVertex7.Y * factor1, PreVertex7.Z * factor1, 1 * factor1);
 
-        TransformVector(Vertex0, Vertex0, transformMatrix, zeroVector);
-        TransformVector(Vertex1, Vertex1, transformMatrix, zeroVector);
-        TransformVector(Vertex2, Vertex2, transformMatrix, zeroVector);
-        TransformVector(Vertex3, Vertex3, transformMatrix, zeroVector);
-        TransformVector(Vertex4, Vertex4, transformMatrix, zeroVector);
-        TransformVector(Vertex5, Vertex5, transformMatrix, zeroVector);
-        TransformVector(Vertex6, Vertex6, transformMatrix, zeroVector);
-        TransformVector(Vertex7, Vertex7, transformMatrix, zeroVector);
-
         DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode(), $"{ForElement.Name} current ({ForElement.JointId}): {transformMatrix[12]:F3}, {transformMatrix[13]:F3}, {transformMatrix[14]:F3}, factor: {factor3 * Vertex0.W}");
 
-        Add(Vertex0, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex0.W);
-        Add(Vertex1, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex1.W);
-        Add(Vertex2, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex2.W);
-        Add(Vertex3, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex3.W);
-        Add(Vertex4, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex4.W);
-        Add(Vertex5, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex5.W);
-        Add(Vertex6, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex6.W);
-        Add(Vertex7, transformMatrix[12], transformMatrix[13], transformMatrix[14], factor3 * Vertex7.W);
+
+        float[] transofrmParents = new float[16];
+        for (int i = 0; i < transofrmParents.Length; i++)
+        {
+            transofrmParents[i] = transformMatrix[i];
+        }
+
+        Vector3 offset = new(transofrmParents[12], transofrmParents[13], transofrmParents[14]);
+
+        Vec4f originOffset = new(0, 0, 0, 0);
 
         if (ForElement.ParentElement?.JointId > 0)
         {
-            float[] parentTransformMatrix = GetTransfromMatricesFromParents(transformMatrix4x3);
+            Vector3 parentTranslation = GetTranslationFromParents(transformMatrix4x3);
 
-            DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode() + 1, $"{ForElement.Name} parent ({ForElement.ParentElement.JointId}): {parentTransformMatrix[12]:F3}, {parentTransformMatrix[13]:F3}, {parentTransformMatrix[14]:F3}, factor: {-1 * factor3 * Vertex0.W}");
+            /*parentTranslation *= factor3;
 
-            Add(Vertex0, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex0.W);
-            Add(Vertex1, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex1.W);
-            Add(Vertex2, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex2.W);
-            Add(Vertex3, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex3.W);
-            Add(Vertex4, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex4.W);
-            Add(Vertex5, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex5.W);
-            Add(Vertex6, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex6.W);
-            Add(Vertex7, parentTransformMatrix[12], parentTransformMatrix[13], parentTransformMatrix[14], -1 * factor3 * Vertex7.W);
+            originOffset.X -= parentTranslation.X;
+            originOffset.Y -= parentTranslation.Y;
+            originOffset.Z -= parentTranslation.Z;*/
         }
+
+        DebugWidgets.Text("test", "test", ForElement.Name.GetHashCode() + 1, $"{ForElement.Name} offset ({ForElement.JointId}): {offset.X:F3}, {offset.Y:F3}, {offset.Z:F3}");
+
+        Vec4f origin = Origin.Clone();
+        Add(origin, transofrmParents[12], transofrmParents[13], transofrmParents[14], factor3 * Vertex0.W);
+
+        Vector3 fullModelOffset = new(-0.5f, 0, -0.5f);
 
         Vertex0 = Transform(ElementMatrix, Vertex0, factor2);
         Vertex1 = Transform(ElementMatrix, Vertex1, factor2);
@@ -336,6 +331,33 @@ public sealed class ShapeElementCollider
         Vertex5 = Transform(ElementMatrix, Vertex5, factor2);
         Vertex6 = Transform(ElementMatrix, Vertex6, factor2);
         Vertex7 = Transform(ElementMatrix, Vertex7, factor2);
+
+        TransformVector(Vertex0, Vertex0, transformMatrix, originOffset);
+        TransformVector(Vertex1, Vertex1, transformMatrix, originOffset);
+        TransformVector(Vertex2, Vertex2, transformMatrix, originOffset);
+        TransformVector(Vertex3, Vertex3, transformMatrix, originOffset);
+        TransformVector(Vertex4, Vertex4, transformMatrix, originOffset);
+        TransformVector(Vertex5, Vertex5, transformMatrix, originOffset);
+        TransformVector(Vertex6, Vertex6, transformMatrix, originOffset);
+        TransformVector(Vertex7, Vertex7, transformMatrix, originOffset);
+
+        Add(Vertex0, offset.X, offset.Y, offset.Z, factor3 * Vertex0.W);
+        Add(Vertex1, offset.X, offset.Y, offset.Z, factor3 * Vertex1.W);
+        Add(Vertex2, offset.X, offset.Y, offset.Z, factor3 * Vertex2.W);
+        Add(Vertex3, offset.X, offset.Y, offset.Z, factor3 * Vertex3.W);
+        Add(Vertex4, offset.X, offset.Y, offset.Z, factor3 * Vertex4.W);
+        Add(Vertex5, offset.X, offset.Y, offset.Z, factor3 * Vertex5.W);
+        Add(Vertex6, offset.X, offset.Y, offset.Z, factor3 * Vertex6.W);
+        Add(Vertex7, offset.X, offset.Y, offset.Z, factor3 * Vertex7.W);
+
+        Add(Vertex0, fullModelOffset.X, fullModelOffset.Y, fullModelOffset.Z, factor3 * Vertex0.W);
+        Add(Vertex1, fullModelOffset.X, fullModelOffset.Y, fullModelOffset.Z, factor3 * Vertex1.W);
+        Add(Vertex2, fullModelOffset.X, fullModelOffset.Y, fullModelOffset.Z, factor3 * Vertex2.W);
+        Add(Vertex3, fullModelOffset.X, fullModelOffset.Y, fullModelOffset.Z, factor3 * Vertex3.W);
+        Add(Vertex4, fullModelOffset.X, fullModelOffset.Y, fullModelOffset.Z, factor3 * Vertex4.W);
+        Add(Vertex5, fullModelOffset.X, fullModelOffset.Y, fullModelOffset.Z, factor3 * Vertex5.W);
+        Add(Vertex6, fullModelOffset.X, fullModelOffset.Y, fullModelOffset.Z, factor3 * Vertex6.W);
+        Add(Vertex7, fullModelOffset.X, fullModelOffset.Y, fullModelOffset.Z, factor3 * Vertex7.W);
 
         TransformVector(Vertex0, Vertex0, Renderer.ModelMat, zeroVector);
         TransformVector(Vertex1, Vertex1, Renderer.ModelMat, zeroVector);

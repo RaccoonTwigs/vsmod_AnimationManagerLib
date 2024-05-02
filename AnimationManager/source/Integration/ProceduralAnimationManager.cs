@@ -332,14 +332,6 @@ internal class ProceduralClientAnimator : ClientAnimator
                 _colliders.UnprocessedElementsLeft = _colliders.ShapeElementsToProcess.Count > 0;
                 Console.WriteLine($"CollidersEntityBehavior: {elem.Name} processed");
             }
-
-            /*if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
-            {
-                //float[] inverse = new float[16];
-                //Mat4f.Invert(inverse, modelMatrix);
-                //Mat4f.Mul(tmpMatrix, outFramePose.AnimModelMatrix, inverse);
-                collider?.Transform(TransformationMatrices4x3, tmpMatrix);
-            }*/
             #endregion
 
             float[] prevNew = new float[16];
