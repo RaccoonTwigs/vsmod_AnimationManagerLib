@@ -15,8 +15,7 @@ public sealed class ShapeElementCollider
     public const int VertexCount = 8;
     public Vector4[] ElementVertices { get; } = new Vector4[VertexCount];
     public Vector4[] InworldVertices { get; } = new Vector4[VertexCount];
-    public float[] ElementMatrix { get; private set; } = new float[16];
-    public int JointId { get; private set; }
+    public int JointId { get; }
 
     public EntityShapeRenderer? Renderer { get; set; } = null;
 
@@ -36,9 +35,7 @@ public sealed class ShapeElementCollider
 
         for (int vertex = 0; vertex < VertexCount; vertex++)
         {
-            InworldVertices[vertex] = ElementVertices[vertex] / 16f;
-            InworldVertices[vertex] = MultiplyVectorByMatrix(ElementMatrix, InworldVertices[vertex]);
-            InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, InworldVertices[vertex]);
+            InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, ElementVertices[vertex]);
             InworldVertices[vertex] += offset + fullModelOffset;
             InworldVertices[vertex] = MultiplyVectorByMatrix(Renderer.ModelMat, InworldVertices[vertex]);
         }
@@ -59,19 +56,23 @@ public sealed class ShapeElementCollider
         ElementVertices[5] = new(from.X, from.Y + diagonal.Y, from.Z + diagonal.Z, from.W);
         ElementVertices[6] = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
 
-        Mat4f.Identity(ElementMatrix);
+        float[] elementMatrixValues = new float[16];
+        Mat4f.Identity(elementMatrixValues);
+        Matrixf elementMatrix = new(elementMatrixValues);
+        if (element.ParentElement != null) GetElementTransformMatrix(elementMatrix, element.ParentElement);
 
-        Matrixf temporaryMatrix = new(ElementMatrix);
-        if (element.ParentElement != null) GetElementTransformMatrix(temporaryMatrix, element.ParentElement);
-
-        temporaryMatrix
+        elementMatrix
             .Translate(element.RotationOrigin[0], element.RotationOrigin[1], element.RotationOrigin[2])
             .RotateX((float)element.RotationX * GameMath.DEG2RAD)
             .RotateY((float)element.RotationY * GameMath.DEG2RAD)
             .RotateZ((float)element.RotationZ * GameMath.DEG2RAD)
             .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2]);
 
-        ElementMatrix = temporaryMatrix.Values;
+
+        for (int vertex = 0; vertex < VertexCount; vertex++)
+        {
+            ElementVertices[vertex] = MultiplyVectorByMatrix(elementMatrix.Values, ElementVertices[vertex] / 16f);
+        }
     }
 
     private static void GetElementTransformMatrix(Matrixf matrix, ShapeElement element)
