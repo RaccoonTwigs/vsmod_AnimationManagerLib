@@ -106,23 +106,39 @@ internal static class AnimatorPatch
 
     private static void ReplaceAnimationManagers(EntityAgent __instance)
     {
-        try
+        
+        if (__instance is EntityPlayer)
         {
-            Vintagestory.API.Common.AnimationManager animManager = (Vintagestory.API.Common.AnimationManager)_animManager.GetValue(__instance);
-            ProceduralAnimationManager animManagerReplacer = new(_manager, _coreClientAPI, animManager)
+            try
             {
-                UseFpAnmations = false
-            };
-            _animManager.SetValue(__instance, animManagerReplacer);
+                Vintagestory.API.Common.AnimationManager animManager = (Vintagestory.API.Common.AnimationManager)_animManager.GetValue(__instance);
+                ProceduralPlayerAnimationManager animManagerReplacer = new(_manager, _coreClientAPI, animManager)
+                {
+                    UseFpAnmations = false
+                };
+                _animManager.SetValue(__instance, animManagerReplacer);
 
-            Vintagestory.API.Common.AnimationManager selfFpAnimManager = (Vintagestory.API.Common.AnimationManager)_selfFpAnimManager.GetValue(__instance);
-            ProceduralAnimationManager selfFpAnimManagerReplacer = new(_manager, _coreClientAPI, selfFpAnimManager);
-            _selfFpAnimManager.SetValue(__instance, selfFpAnimManagerReplacer);
+                Vintagestory.API.Common.AnimationManager selfFpAnimManager = (Vintagestory.API.Common.AnimationManager)_selfFpAnimManager.GetValue(__instance);
+                ProceduralPlayerAnimationManager selfFpAnimManagerReplacer = new(_manager, _coreClientAPI, selfFpAnimManager);
+                _selfFpAnimManager.SetValue(__instance, selfFpAnimManagerReplacer);
+            }
+            catch (Exception exception)
+            {
+                _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.");
+                _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.\nException: {exception}\n");
+            }
         }
-        catch (Exception exception)
+        else
         {
-            _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.");
-            _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.\nException: {exception}\n");
+            try
+            {
+                __instance.AnimManager = new ProceduralAnimationManager(_manager, _coreClientAPI, __instance.AnimManager as Vintagestory.API.Common.AnimationManager);
+            }
+            catch (Exception exception)
+            {
+                _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.");
+                _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.\nException: {exception}\n");
+            }
         }
     }
 

@@ -15,7 +15,7 @@ public sealed class ShapeElementCollider
     public const int VertexCount = 8;
     public Vector4[] ElementVertices { get; } = new Vector4[VertexCount];
     public Vector4[] InworldVertices { get; } = new Vector4[VertexCount];
-    public int JointId { get; }
+    public int JointId { get; set; }
 
     public EntityShapeRenderer? Renderer { get; set; } = null;
 
@@ -30,13 +30,11 @@ public sealed class ShapeElementCollider
         if (Renderer == null) return;
 
         float[] transformMatrix = GetTransformMatrix(JointId, transformMatrix4x3);
-        Vector4 offset = new(transformMatrix[12], transformMatrix[13], transformMatrix[14], 0);
-        Vector4 fullModelOffset = new(-0.5f, 0, -0.5f, 0);
 
         for (int vertex = 0; vertex < VertexCount; vertex++)
         {
             InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, ElementVertices[vertex]);
-            InworldVertices[vertex] += offset + fullModelOffset;
+            InworldVertices[vertex].W = 1.0f;
             InworldVertices[vertex] = MultiplyVectorByMatrix(Renderer.ModelMat, InworldVertices[vertex]);
         }
     }
@@ -56,6 +54,8 @@ public sealed class ShapeElementCollider
         ElementVertices[5] = new(from.X, from.Y + diagonal.Y, from.Z + diagonal.Z, from.W);
         ElementVertices[6] = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
 
+        
+
         float[] elementMatrixValues = new float[16];
         Mat4f.Identity(elementMatrixValues);
         Matrixf elementMatrix = new(elementMatrixValues);
@@ -71,7 +71,9 @@ public sealed class ShapeElementCollider
 
         for (int vertex = 0; vertex < VertexCount; vertex++)
         {
-            ElementVertices[vertex] = MultiplyVectorByMatrix(elementMatrix.Values, ElementVertices[vertex] / 16f);
+            ElementVertices[vertex] = ElementVertices[vertex] / 16f;
+            ElementVertices[vertex] = MultiplyVectorByMatrix(elementMatrix.Values, ElementVertices[vertex]);
+            ElementVertices[vertex].W = 1f;
         }
     }
 

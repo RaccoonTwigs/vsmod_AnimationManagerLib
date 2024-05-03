@@ -10,7 +10,51 @@ using Vintagestory.API.MathTools;
 
 namespace AnimationManagerLib.Integration;
 
-internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimationManager
+internal class ProceduralPlayerAnimationManager : Vintagestory.API.Common.PlayerAnimationManager
+{
+    public ProceduralPlayerAnimationManager(AnimationManager manager, ICoreClientAPI clientApi, Vintagestory.API.Common.AnimationManager previousManager)
+    {
+        api = clientApi;
+        capi = clientApi;
+        Triggers = previousManager.Triggers;
+
+        entity = (Entity?)_managerEntity?.GetValue(previousManager);
+        if (previousManager.Animator != null) Animator = ProceduralClientAnimator.Create(manager, this, previousManager.Animator as ClientAnimator, entity);
+        HeadController = previousManager.HeadController;
+        ActiveAnimationsByAnimCode = previousManager.ActiveAnimationsByAnimCode;
+
+        _manager = manager;
+    }
+
+    public override void OnClientFrame(float dt)
+    {
+        if (base.Animator is ClientAnimator && base.Animator is not ProceduralClientAnimator)
+        {
+            Animator = base.Animator;
+        }
+
+        try
+        {
+            _manager.OnFrameHandler(this, entity, dt);
+            base.OnClientFrame(dt);
+        }
+        catch { }
+    }
+
+    public new IAnimator Animator
+    {
+        get => base.Animator;
+        set
+        {
+            base.Animator = ProceduralClientAnimator.Create(_manager, this, value as ClientAnimator, entity);
+        }
+    }
+
+    private static readonly FieldInfo? _managerEntity = typeof(Vintagestory.API.Common.AnimationManager).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
+    private readonly AnimationManager _manager;
+}
+
+internal class ProceduralAnimationManager : Vintagestory.API.Common.AnimationManager
 {
     public ProceduralAnimationManager(AnimationManager manager, ICoreClientAPI clientApi, Vintagestory.API.Common.AnimationManager previousManager)
     {
@@ -53,6 +97,8 @@ internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimat
     private static readonly FieldInfo? _managerEntity = typeof(Vintagestory.API.Common.AnimationManager).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
     private readonly AnimationManager _manager;
 }
+
+
 
 internal class ProceduralClientAnimator : ClientAnimator
 {
@@ -124,7 +170,7 @@ internal class ProceduralClientAnimator : ClientAnimator
         tmpMatrix = (float[])((float[])_tmpMatrix.GetValue(this)).Clone();
     }
 
-    public static ProceduralClientAnimator Create(AnimationManager manager, ProceduralAnimationManager proceduralManager, ClientAnimator previousAnimator, Entity entity)
+    public static ProceduralClientAnimator Create(AnimationManager manager, Vintagestory.API.Common.AnimationManager proceduralManager, ClientAnimator previousAnimator, Entity entity)
     {
         WalkSpeedSupplierDelegate? walkSpeedSupplier = (WalkSpeedSupplierDelegate?)_walkSpeedSupplier?.GetValue(previousAnimator);
         Action<string>? onAnimationStoppedListener = (Action<string>?)_onAnimationStoppedListener?.GetValue(previousAnimator);

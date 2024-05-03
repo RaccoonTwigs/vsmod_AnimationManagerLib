@@ -19,20 +19,26 @@
 				"UpperFootR",
 				"LowerFootL",
 				"LowerFootR"
-			],
-			"colliderShapeElementsAll": [
-				"LowerTorso",
-				"UpperTorso",
+			]
+		}
+	},
+	{ 
+		"side": "Server", 
+		"file": "game:entities/land/drifter", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
 				"Head",
-				"Neck",
-				"UpperArmR",
-				"UpperArmL",
-				"LowerArmR",
-				"LowerArmL",
-				"UpperFootL",
-				"UpperFootR",
-				"LowerFootL",
-				"LowerFootR"
+				"Body",
+				"Abdomen",
+				"L thigh",
+				"R thigh",
+				"L shoulder",
+				"R shoulder",
+				"L lower arm",
+				"R lower arm"
 			]
 		}
 	}
