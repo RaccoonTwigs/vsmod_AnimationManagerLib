@@ -6,3 +6,4 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("Major Bug", "S4143:Collection elements should not be replaced unconditionally", Justification = "<Pending>", Scope = "member", Target = "~M:AnimationManagerLib.Integration.ShapeElementCollider.Transform(System.Single[])")]
+[assembly: SuppressMessage("Minor Code Smell", "S101:Types should be named in PascalCase", Justification = "Common abreviation", Scope = "type", Target = "~T:AnimationManagerLib.Integration.CuboidAABBCollider")]

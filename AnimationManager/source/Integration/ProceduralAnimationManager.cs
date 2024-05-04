@@ -114,6 +114,7 @@ internal class ProceduralClientAnimator : ClientAnimator
         _entity = entity;
         _manager = manager;
         _colliders = entity.GetBehavior<CollidersEntityBehavior>();
+        if (_colliders != null) _colliders.Animator = this;
 
         frameByDepthByAnimation = (List<ElementPose>[][])_frameByDepthByAnimation.GetValue(previous);
         nextFrameTransformsByAnimation = (List<ElementPose>[][])_nextFrameTransformsByAnimation.GetValue(previous);
@@ -217,6 +218,17 @@ internal class ProceduralClientAnimator : ClientAnimator
             Mat4f.Identity(tmp);
 
             CalculateMatrices(num, dt, RootPoses, weightsByAnimationAndElement[0], Mat4f.Create(), frameByDepthByAnimation[0], nextFrameTransformsByAnimation[0], 0);
+
+            #region Colliders
+            /*if (_colliders != null && _entity != null)
+            {
+                foreach ((_, ShapeElementCollider collider) in _colliders.Colliders)
+                {
+                    collider.Transform(TransformationMatrices4x3, _entity.Api as ICoreClientAPI);
+                }
+                _colliders.CalculateBoundingBox();
+            }*/
+            #endregion
 
             for (int j = 0; j < GlobalConstants.MaxAnimatedElements; j++)
             {
@@ -351,11 +363,6 @@ internal class ProceduralClientAnimator : ClientAnimator
                 _colliders.Colliders.Add(elem.Name, new ShapeElementCollider(elem));
                 _colliders.ShapeElementsToProcess.Remove(elem.Name);
                 _colliders.UnprocessedElementsLeft = _colliders.ShapeElementsToProcess.Count > 0;
-            }
-
-            if (_colliders != null && _colliders.Colliders.TryGetValue(elem.Name, out ShapeElementCollider? collider))
-            {
-                collider?.Transform(TransformationMatrices4x3);
             }
             #endregion
 

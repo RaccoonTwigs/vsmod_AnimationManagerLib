@@ -30,7 +30,6 @@ internal static class AnimatorPatch
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(ReplaceAnimationManagers)))
             );
 
-#if DEBUG
         new Harmony(harmonyId).Patch(
                 typeof(EntityShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderColliders)))
@@ -39,7 +38,6 @@ internal static class AnimatorPatch
                 typeof(EntityPlayerShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderCollidersPlayer)))
             );
-#endif
 
         _manager = manager;
         _coreClientAPI = api;
@@ -51,10 +49,8 @@ internal static class AnimatorPatch
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("updateEyeHeight", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("Initialize", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
 
-#if DEBUG
         new Harmony(harmonyId).Unpatch(typeof(EntityShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all), HarmonyPatchType.Postfix, harmonyId);
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayerShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all), HarmonyPatchType.Postfix, harmonyId);
-#endif
     }
 
     private static AnimationManager? _manager;
@@ -142,7 +138,6 @@ internal static class AnimatorPatch
         }
     }
 
-#if DEBUG
     private static void RenderColliders(EntityShapeRenderer __instance)
     {
         IShaderProgram? currentShader = _coreClientAPI?.Render.CurrentActiveShader;
@@ -170,5 +165,5 @@ internal static class AnimatorPatch
             .GetField("eagent", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.GetValue(renderer);
     }
-#endif
+
 }

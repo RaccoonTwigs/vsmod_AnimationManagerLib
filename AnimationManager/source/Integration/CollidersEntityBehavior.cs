@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System; 
 using System.Collections.Generic;
 using System.Numerics;
 using Vintagestory.API.Client;
@@ -7,8 +7,154 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
+using VSImGui.Debug;
 
 namespace AnimationManagerLib.Integration;
+
+public readonly struct CuboidFace
+{
+    public readonly Vector3 VertexA;
+    public readonly Vector3 VertexB;
+    public readonly Vector3 VertexC;
+    public readonly Vector3 VertexD;
+
+    public CuboidFace(Vector4 vertexA, Vector4 vertexB, Vector4 vertexC, Vector4 vertexD)
+    {
+        VertexA = new(vertexA.X, vertexA.Y, vertexA.Z);
+        VertexB = new(vertexB.X, vertexB.Y, vertexB.Z);
+        VertexC = new(vertexC.X, vertexC.Y, vertexC.Z);
+        VertexD = new(vertexD.X, vertexD.Y, vertexD.Z);
+    }
+
+    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out float parameter, out Vector3 intersection)
+    {
+        Vector3 normal = Vector3.Cross(VertexB - VertexA, VertexC - VertexA);
+        float d = Vector3.Dot(normal, VertexA);
+
+        #region Check if segment is parallel to the plane defined by the face
+        float denominator = Vector3.Dot(normal, segmentDirection);
+        if (Math.Abs(denominator) < 0.0001f)
+        {
+            parameter = -1;
+            intersection = Vector3.Zero;
+            return false;
+        }
+        #endregion
+
+        #region Compute intersection point with the plane defined by the face and check if segment intersects the plane
+        parameter = (d - Vector3.Dot(normal, segmentStart)) / denominator;
+        if (parameter < 0 || parameter > 1)
+        {
+            intersection = Vector3.Zero;
+            return false;
+        }
+        #endregion
+
+        intersection = segmentStart + parameter * segmentDirection;
+
+        #region Check if the intersection point is within the face boundaries
+        Vector3 edge0 = VertexB - VertexA;
+        Vector3 vp0 = intersection - VertexA;
+        if (Vector3.Dot(normal, Vector3.Cross(edge0, vp0)) < 0)
+        {
+            return false;
+        }
+
+        Vector3 edge1 = VertexC - VertexB;
+        Vector3 vp1 = intersection - VertexB;
+        if (Vector3.Dot(normal, Vector3.Cross(edge1, vp1)) < 0)
+        {
+            return false;
+        }
+
+        Vector3 edge2 = VertexD - VertexC;
+        Vector3 vp2 = intersection - VertexC;
+        if (Vector3.Dot(normal, Vector3.Cross(edge2, vp2)) < 0)
+        {
+            return false;
+        }
+
+        Vector3 edge3 = VertexA - VertexD;
+        Vector3 vp3 = intersection - VertexD;
+        if (Vector3.Dot(normal, Vector3.Cross(edge3, vp3)) < 0)
+        {
+            return false;
+        }
+        #endregion
+
+        return true;
+    }
+}
+
+public readonly struct CuboidAABBCollider
+{
+    public readonly Vector3 VertexA;
+    public readonly Vector3 VertexB;
+
+    public CuboidAABBCollider(Vector3 vertexA, Vector3 vertexB)
+    {
+        VertexA = vertexA;
+        VertexB = vertexB;
+    }
+
+    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection) // @TODO check if this works
+    {
+        Vector3 min = Vector3.Min(VertexA, VertexB);
+        Vector3 max = Vector3.Max(VertexA, VertexB);
+
+        float tmin = (min.X - segmentStart.X) / segmentDirection.X;
+        float tmax = (max.X - segmentStart.X) / segmentDirection.X;
+
+        if (tmin > tmax)
+        {
+            float temp = tmin;
+            tmin = tmax;
+            tmax = temp;
+        }
+
+        float tymin = (min.Y - segmentStart.Y) / segmentDirection.Y;
+        float tymax = (max.Y - segmentStart.Y) / segmentDirection.Y;
+
+        if (tymin > tymax)
+        {
+            float temp = tymin;
+            tymin = tymax;
+            tymax = temp;
+        }
+
+        if ((tmin > tymax) || (tymin > tmax))
+        {
+            return false;
+        }
+
+        if (tymin > tmin)
+        {
+            tmin = tymin;
+        }
+
+        if (tymax < tmax)
+        {
+            tmax = tymax;
+        }
+
+        float tzmin = (min.Z - segmentStart.Z) / segmentDirection.Z;
+        float tzmax = (max.Z - segmentStart.Z) / segmentDirection.Z;
+
+        if (tzmin > tzmax)
+        {
+            float temp = tzmin;
+            tzmin = tzmax;
+            tzmax = temp;
+        }
+
+        if ((tmin > tzmax) || (tzmin > tmax))
+        {
+            return false;
+        }
+
+        return true;
+    }
+}
 
 public sealed class ShapeElementCollider
 {
@@ -25,18 +171,52 @@ public sealed class ShapeElementCollider
         SetElementVertices(element);
     }
 
-    public void Transform(float[] transformMatrix4x3)
+    public void Transform(float[] transformMatrix4x3, ICoreClientAPI api)
     {
         if (Renderer == null) return;
 
         float[] transformMatrix = GetTransformMatrix(JointId, transformMatrix4x3);
+
+        EntityPos playerPos = api.World.Player.Entity.Pos;
 
         for (int vertex = 0; vertex < VertexCount; vertex++)
         {
             InworldVertices[vertex] = MultiplyVectorByMatrix(transformMatrix, ElementVertices[vertex]);
             InworldVertices[vertex].W = 1.0f;
             InworldVertices[vertex] = MultiplyVectorByMatrix(Renderer.ModelMat, InworldVertices[vertex]);
+            InworldVertices[vertex].X += (float)playerPos.X;
+            InworldVertices[vertex].Y += (float)playerPos.Y;
+            InworldVertices[vertex].Z += (float)playerPos.Z;
         }
+    }
+    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out float parameter, out Vector3 intersection)
+    {
+        CuboidFace[] faces = new[]
+        {
+            new CuboidFace(ElementVertices[0], ElementVertices[1], ElementVertices[2], ElementVertices[3]),
+            new CuboidFace(ElementVertices[4], ElementVertices[5], ElementVertices[6], ElementVertices[7]),
+            new CuboidFace(ElementVertices[0], ElementVertices[1], ElementVertices[5], ElementVertices[4]),
+            new CuboidFace(ElementVertices[2], ElementVertices[3], ElementVertices[7], ElementVertices[6]),
+            new CuboidFace(ElementVertices[0], ElementVertices[3], ElementVertices[7], ElementVertices[4]),
+            new CuboidFace(ElementVertices[1], ElementVertices[2], ElementVertices[6], ElementVertices[5])
+        };
+
+        float closestParameter = float.MaxValue;
+        bool foundIntersection = false;
+        intersection = Vector3.Zero;
+
+        foreach (CuboidFace face in faces)
+        {
+            if (face.Collide(segmentStart, segmentDirection, out float currentParameter, out Vector3 faceIntersection) && currentParameter < closestParameter)
+            {
+                closestParameter = currentParameter;
+                intersection = faceIntersection;
+                foundIntersection = true;
+            }
+        }
+
+        parameter = closestParameter;
+        return foundIntersection;
     }
 
     private void SetElementVertices(ShapeElement element)
@@ -46,15 +226,13 @@ public sealed class ShapeElementCollider
         Vector4 diagonal = to - from;
 
         ElementVertices[0] = from;
-        ElementVertices[7] = to;
+        ElementVertices[6] = to;
         ElementVertices[1] = new(from.X + diagonal.X, from.Y, from.Z, from.W);
-        ElementVertices[2] = new(from.X, from.Y + diagonal.Y, from.Z, from.W);
-        ElementVertices[3] = new(from.X, from.Y, from.Z + diagonal.Z, from.W);
-        ElementVertices[4] = new(from.X + diagonal.X, from.Y + diagonal.Y, from.Z, from.W);
-        ElementVertices[5] = new(from.X, from.Y + diagonal.Y, from.Z + diagonal.Z, from.W);
-        ElementVertices[6] = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
-
-        
+        ElementVertices[3] = new(from.X, from.Y + diagonal.Y, from.Z, from.W);
+        ElementVertices[4] = new(from.X, from.Y, from.Z + diagonal.Z, from.W);
+        ElementVertices[2] = new(from.X + diagonal.X, from.Y + diagonal.Y, from.Z, from.W);
+        ElementVertices[7] = new(from.X, from.Y + diagonal.Y, from.Z + diagonal.Z, from.W);
+        ElementVertices[5] = new(from.X + diagonal.X, from.Y, from.Z + diagonal.Z, from.W);
 
         float[] elementMatrixValues = new float[16];
         Mat4f.Identity(elementMatrixValues);
@@ -67,7 +245,6 @@ public sealed class ShapeElementCollider
             .RotateY((float)element.RotationY * GameMath.DEG2RAD)
             .RotateZ((float)element.RotationZ * GameMath.DEG2RAD)
             .Translate(0f - element.RotationOrigin[0], 0f - element.RotationOrigin[1], 0f - element.RotationOrigin[2]);
-
 
         for (int vertex = 0; vertex < VertexCount; vertex++)
         {
@@ -162,25 +339,25 @@ public sealed class ShapeElementCollider
 #if DEBUG
     public void Render(ICoreClientAPI api, EntityAgent entityPlayer, int color = ColorUtil.WhiteArgb)
     {
-        BlockPos playerPos = entityPlayer.Pos.AsBlockPos;
-        EntityPos entityPos = entityPlayer.Pos;
-        Vec3f deltaPos = entityPos.XYZFloat - new Vec3f(playerPos.X, playerPos.Y, playerPos.Z);
+        EntityAgent player = api.World.Player.Entity;
+
+        BlockPos playerPos = player.Pos.AsBlockPos;
+        Vec3f deltaPos = 0 - new Vec3f(playerPos.X, playerPos.Y, playerPos.Z);
 
         RenderLine(api, InworldVertices[0], InworldVertices[1], playerPos, deltaPos, ColorUtil.ToRgba(255, 0, 0, 255));
-        RenderLine(api, InworldVertices[0], InworldVertices[2], playerPos, deltaPos, ColorUtil.ToRgba(255, 0, 255, 0));
-        RenderLine(api, InworldVertices[0], InworldVertices[3], playerPos, deltaPos, ColorUtil.ToRgba(255, 255, 0, 0));
+        RenderLine(api, InworldVertices[0], InworldVertices[3], playerPos, deltaPos, ColorUtil.ToRgba(255, 0, 255, 0));
+        RenderLine(api, InworldVertices[0], InworldVertices[4], playerPos, deltaPos, ColorUtil.ToRgba(255, 255, 0, 0));
 
+        RenderLine(api, InworldVertices[1], InworldVertices[1], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[1], InworldVertices[5], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[2], InworldVertices[6], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[2], InworldVertices[3], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[3], InworldVertices[7], playerPos, deltaPos, color);
         RenderLine(api, InworldVertices[4], InworldVertices[7], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[5], InworldVertices[7], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[4], InworldVertices[5], playerPos, deltaPos, color);
         RenderLine(api, InworldVertices[6], InworldVertices[7], playerPos, deltaPos, color);
-
-        RenderLine(api, InworldVertices[1], InworldVertices[4], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[2], InworldVertices[5], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[3], InworldVertices[6], playerPos, deltaPos, color);
-
-        RenderLine(api, InworldVertices[2], InworldVertices[4], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[3], InworldVertices[5], playerPos, deltaPos, color);
-        RenderLine(api, InworldVertices[1], InworldVertices[6], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[6], InworldVertices[5], playerPos, deltaPos, color);
+        RenderLine(api, InworldVertices[2], InworldVertices[1], playerPos, deltaPos, color);
     }
 
     private static void RenderLine(ICoreClientAPI api, Vector4 start, Vector4 end, BlockPos playerPos, Vec3f deltaPos, int color)
@@ -194,7 +371,19 @@ public sealed class CollidersEntityBehavior : EntityBehavior
 {
     public CollidersEntityBehavior(Entity entity) : base(entity)
     {
+#if DEBUG
+        DebugWidgets.CheckBox("AMlib", "rendering", "Render debug colliders", () => RenderColliders, (value) => RenderColliders = value);
+#endif
     }
+
+    public CuboidAABBCollider BoundingBox { get; private set; }
+    public bool HasOBBCollider { get; private set; } = false;
+    public bool UnprocessedElementsLeft { get; set; } = false;
+    public HashSet<string> ShapeElementsToProcess { get; private set; } = new();
+    public Dictionary<string, ShapeElementCollider> Colliders { get; private set; } = new();
+    public override string PropertyName() => "animationmanagerlib:colliders";
+    internal ProceduralClientAnimator? Animator { get; set; }
+    static public bool RenderColliders { get; set; } = true;
 
     public override void Initialize(EntityProperties properties, JsonObject attributes)
     {
@@ -205,14 +394,11 @@ public sealed class CollidersEntityBehavior : EntityBehavior
             UnprocessedElementsLeft = true;
         }
     }
+    public override void OnGameTick(float deltaTime)
+    {
+        if (Animator != null && entity.Api is ICoreClientAPI clientApi && entity.IsRendered) RecalculateColliders(Animator, clientApi);
+    }
 
-    public bool HasOBBCollider { get; private set; } = false;
-    public bool UnprocessedElementsLeft { get; set; } = false;
-    public HashSet<string> ShapeElementsToProcess { get; private set; } = new();
-    public Dictionary<string, ShapeElementCollider> Colliders { get; private set; } = new();
-    public override string PropertyName() => "animationmanagerlib:colliders";
-
-#if DEBUG
     public void Render(ICoreClientAPI api, EntityAgent entityPlayer, EntityShapeRenderer renderer, int color = ColorUtil.WhiteArgb)
     {
         if (!HasOBBCollider) return;
@@ -220,8 +406,71 @@ public sealed class CollidersEntityBehavior : EntityBehavior
         foreach (ShapeElementCollider collider in Colliders.Values)
         {
             collider.Renderer = renderer;
-            collider.Render(api, entityPlayer, color);
+#if DEBUG
+            if (RenderColliders && entityPlayer.EntityId != api.World.Player.Entity.EntityId) collider.Render(api, entityPlayer, color);
+#endif
         }
     }
-#endif
+    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out string collider, out float parameter, out Vector3 intersection)
+    {
+        parameter = float.MaxValue;
+        bool foundIntersection = false;
+        collider = "";
+        intersection = Vector3.Zero;
+
+        if (!BoundingBox.Collide(segmentStart, segmentDirection))
+        {
+            return false;
+        }
+
+        foreach ((string key, ShapeElementCollider shapeElementCollider) in Colliders)
+        {
+            if (shapeElementCollider.Collide(segmentStart, segmentDirection, out float currentParameter, out Vector3 currentIntersection) && currentParameter < parameter)
+            {
+                parameter = currentParameter;
+                collider = key;
+                intersection = currentIntersection;
+                foundIntersection = true;
+            }
+        }
+
+        return foundIntersection;
+    }
+
+    private void RecalculateColliders(ProceduralClientAnimator animator, ICoreClientAPI clientApi)
+    {
+        foreach ((_, ShapeElementCollider collider) in Colliders)
+        {
+            collider.Transform(animator.TransformationMatrices4x3, clientApi);
+        }
+        CalculateBoundingBox();
+    }
+    private void CalculateBoundingBox()
+    {
+        Vector3 min = new(float.MaxValue, float.MaxValue, float.MaxValue);
+        Vector3 max = new(float.MinValue, float.MinValue, float.MinValue);
+
+        foreach (ShapeElementCollider collider in Colliders.Values)
+        {
+            for (int vertex = 0; vertex < ShapeElementCollider.VertexCount; vertex++)
+            {
+                Vector4 inworldVertex = collider.InworldVertices[vertex];
+                min.X = Math.Min(min.X, inworldVertex.X);
+                min.Y = Math.Min(min.Y, inworldVertex.Y);
+                min.Z = Math.Min(min.Z, inworldVertex.Z);
+                max.X = Math.Max(max.X, inworldVertex.X);
+                max.Y = Math.Max(max.Y, inworldVertex.Y);
+                max.Z = Math.Max(max.Z, inworldVertex.Z);
+            }
+        }
+
+        BoundingBox = new CuboidAABBCollider(min, max);
+
+        entity.SelectionBox.X1 = min.X - (float)entity.Pos.X;
+        entity.SelectionBox.Y1 = min.Y - (float)entity.Pos.Y;
+        entity.SelectionBox.Z1 = min.Z - (float)entity.Pos.Z;
+        entity.SelectionBox.X2 = max.X - (float)entity.Pos.X;
+        entity.SelectionBox.Y2 = max.Y - (float)entity.Pos.Y;
+        entity.SelectionBox.Z2 = max.Z - (float)entity.Pos.Z;
+    }
 }
