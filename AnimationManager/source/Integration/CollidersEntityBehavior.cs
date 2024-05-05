@@ -7,7 +7,10 @@ using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
-using VSImGui.Debug;
+
+#if DEBUG
+    using VSImGui.Debug;
+#endif
 
 namespace AnimationManagerLib.Integration;
 
@@ -96,11 +99,18 @@ public readonly struct CuboidAABBCollider
         VertexA = vertexA;
         VertexB = vertexB;
     }
+    public CuboidAABBCollider(Cuboidf cuboid)
+    {
+        VertexA = new(cuboid.X1, cuboid.Y1, cuboid.Z1);
+        VertexB = new(cuboid.X2, cuboid.Y2, cuboid.Z2);
+    }
 
-    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection) // @TODO check if this works
+    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out float parameter) // @TODO check if this works
     {
         Vector3 min = Vector3.Min(VertexA, VertexB);
         Vector3 max = Vector3.Max(VertexA, VertexB);
+
+        parameter = 0;
 
         float tmin = (min.X - segmentStart.X) / segmentDirection.X;
         float tmax = (max.X - segmentStart.X) / segmentDirection.X;
@@ -151,6 +161,8 @@ public readonly struct CuboidAABBCollider
         {
             return false;
         }
+
+        parameter = tzmin;
 
         return true;
     }
@@ -396,7 +408,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
     }
     public override void OnGameTick(float deltaTime)
     {
-        if (Animator != null && entity.Api is ICoreClientAPI clientApi && entity.IsRendered) RecalculateColliders(Animator, clientApi);
+        if (HasOBBCollider && Animator != null && entity.Api is ICoreClientAPI clientApi && entity.IsRendered) RecalculateColliders(Animator, clientApi);
     }
 
     public void Render(ICoreClientAPI api, EntityAgent entityPlayer, EntityShapeRenderer renderer, int color = ColorUtil.WhiteArgb)
@@ -413,12 +425,21 @@ public sealed class CollidersEntityBehavior : EntityBehavior
     }
     public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out string collider, out float parameter, out Vector3 intersection)
     {
+        
         parameter = float.MaxValue;
         bool foundIntersection = false;
         collider = "";
         intersection = Vector3.Zero;
 
-        if (!BoundingBox.Collide(segmentStart, segmentDirection))
+        if (!HasOBBCollider)
+        {
+            CuboidAABBCollider AABBCollider = new(entity.CollisionBox);
+            AABBCollider.Collide(segmentStart, segmentDirection, out parameter);
+            intersection = segmentStart + parameter * segmentDirection;
+            return true;
+        }
+
+        if (!BoundingBox.Collide(segmentStart, segmentDirection, out _))
         {
             return false;
         }
