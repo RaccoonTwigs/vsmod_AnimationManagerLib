@@ -1,5 +1,6 @@
 ﻿using System; 
 using System.Collections.Generic;
+using System.IO.Pipes;
 using System.Numerics;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -29,10 +30,18 @@ public readonly struct CuboidFace
         VertexD = new(vertexD.X, vertexD.Y, vertexD.Z);
     }
 
+    private float IntersectPlaneWithLine(Vector3 start, Vector3 direction, Vector3 normal)
+    {
+        float startProjection = Vector3.Dot(normal, start);
+        float directionProjection = Vector3.Dot(normal, start + direction);
+        float planeProjection = Vector3.Dot(normal, VertexA);
+
+        return (planeProjection - startProjection) / (directionProjection - startProjection);
+    }
+
     public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out float parameter, out Vector3 intersection)
     {
         Vector3 normal = Vector3.Cross(VertexB - VertexA, VertexC - VertexA);
-        float d = Vector3.Dot(normal, VertexA);
 
         #region Check if segment is parallel to the plane defined by the face
         float denominator = Vector3.Dot(normal, segmentDirection);
@@ -45,7 +54,7 @@ public readonly struct CuboidFace
         #endregion
 
         #region Compute intersection point with the plane defined by the face and check if segment intersects the plane
-        parameter = (d - Vector3.Dot(normal, segmentStart)) / denominator;
+        parameter = IntersectPlaneWithLine(segmentStart, segmentDirection, normal);
         if (parameter < 0 || parameter > 1)
         {
             intersection = Vector3.Zero;
@@ -84,6 +93,8 @@ public readonly struct CuboidFace
             return false;
         }
         #endregion
+
+        
 
         return true;
     }
@@ -202,15 +213,15 @@ public sealed class ShapeElementCollider
         }
     }
     public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out float parameter, out Vector3 intersection)
-    {
+    { 
         CuboidFace[] faces = new[]
         {
-            new CuboidFace(ElementVertices[0], ElementVertices[1], ElementVertices[2], ElementVertices[3]),
-            new CuboidFace(ElementVertices[4], ElementVertices[5], ElementVertices[6], ElementVertices[7]),
-            new CuboidFace(ElementVertices[0], ElementVertices[1], ElementVertices[5], ElementVertices[4]),
-            new CuboidFace(ElementVertices[2], ElementVertices[3], ElementVertices[7], ElementVertices[6]),
-            new CuboidFace(ElementVertices[0], ElementVertices[3], ElementVertices[7], ElementVertices[4]),
-            new CuboidFace(ElementVertices[1], ElementVertices[2], ElementVertices[6], ElementVertices[5])
+            new CuboidFace(InworldVertices[0], InworldVertices[1], InworldVertices[2], InworldVertices[3]),
+            new CuboidFace(InworldVertices[4], InworldVertices[5], InworldVertices[6], InworldVertices[7]),
+            new CuboidFace(InworldVertices[0], InworldVertices[1], InworldVertices[5], InworldVertices[4]),
+            new CuboidFace(InworldVertices[2], InworldVertices[3], InworldVertices[7], InworldVertices[6]),
+            new CuboidFace(InworldVertices[0], InworldVertices[3], InworldVertices[7], InworldVertices[4]),
+            new CuboidFace(InworldVertices[1], InworldVertices[2], InworldVertices[6], InworldVertices[5])
         };
 
         float closestParameter = float.MaxValue;
@@ -226,6 +237,8 @@ public sealed class ShapeElementCollider
                 foundIntersection = true;
             }
         }
+
+        if (foundIntersection) Console.WriteLine($"ShapeElementCollider - Collide: {foundIntersection}");
 
         parameter = closestParameter;
         return foundIntersection;
@@ -392,7 +405,8 @@ public sealed class CollidersEntityBehavior : EntityBehavior
     public bool HasOBBCollider { get; private set; } = false;
     public bool UnprocessedElementsLeft { get; set; } = false;
     public HashSet<string> ShapeElementsToProcess { get; private set; } = new();
-    public Dictionary<string, ShapeElementCollider> Colliders { get; private set; } = new();
+    public List<string> CollidersIds { get; private set; } = new();
+    public Dictionary<int, ShapeElementCollider> Colliders { get; private set; } = new();
     public override string PropertyName() => "animationmanagerlib:colliders";
     internal ProceduralClientAnimator? Animator { get; set; }
     static public bool RenderColliders { get; set; } = true;
@@ -423,12 +437,12 @@ public sealed class CollidersEntityBehavior : EntityBehavior
 #endif
         }
     }
-    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out string collider, out float parameter, out Vector3 intersection)
+    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out int collider, out float parameter, out Vector3 intersection)
     {
         
         parameter = float.MaxValue;
         bool foundIntersection = false;
-        collider = "";
+        collider = -1;
         intersection = Vector3.Zero;
 
         if (!HasOBBCollider)
@@ -444,7 +458,7 @@ public sealed class CollidersEntityBehavior : EntityBehavior
             return false;
         }
 
-        foreach ((string key, ShapeElementCollider shapeElementCollider) in Colliders)
+        foreach ((int key, ShapeElementCollider shapeElementCollider) in Colliders)
         {
             if (shapeElementCollider.Collide(segmentStart, segmentDirection, out float currentParameter, out Vector3 currentIntersection) && currentParameter < parameter)
             {

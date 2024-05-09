@@ -15,6 +15,7 @@
   <ItemGroup>
     <ModInfoAuthors Include="Maltiez" />
     <ModInfoAuthors Include="TeacupAngel" />
+    <ModInfoAuthors Include="Racoon" />
   </ItemGroup>
 
   <!-- Dependencies -->

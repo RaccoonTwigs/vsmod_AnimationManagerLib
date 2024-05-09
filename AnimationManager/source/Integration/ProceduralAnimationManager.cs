@@ -360,7 +360,9 @@ internal class ProceduralClientAnimator : ClientAnimator
             #region Colliders
             if (_colliders != null && _colliders.UnprocessedElementsLeft && _colliders.ShapeElementsToProcess.Contains(elem.Name))
             {
-                _colliders.Colliders.Add(elem.Name, new ShapeElementCollider(elem));
+                int colliderId = _colliders.CollidersIds.Count;
+                _colliders.Colliders.Add(colliderId, new ShapeElementCollider(elem));
+                _colliders.CollidersIds.Add(elem.Name);
                 _colliders.ShapeElementsToProcess.Remove(elem.Name);
                 _colliders.UnprocessedElementsLeft = _colliders.ShapeElementsToProcess.Count > 0;
             }
