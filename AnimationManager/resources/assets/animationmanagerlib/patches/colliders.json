@@ -1,0 +1,264 @@
+[ 
+	{ 
+		"side": "Server", 
+		"file": "game:entities/humanoid/player", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"LowerTorso",
+				"UpperTorso",
+				"Head",
+				"Neck",
+				"UpperArmR",
+				"UpperArmL",
+				"LowerArmR",
+				"LowerArmL",
+				"UpperFootL",
+				"UpperFootR",
+				"LowerFootL",
+				"LowerFootR"
+			]
+		}
+	},
+	{ 
+		"side": "Server", 
+		"file": "game:entities/land/drifter", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"Head",
+				"Body",
+				"Abdomen",
+				"L thigh",
+				"R thigh",
+				"L shoulder",
+				"R shoulder",
+				"L lower arm",
+				"R lower arm"
+			]
+		}
+	},
+	{ 
+		"side": "Server", 
+		"file": "game:entities/land/hooved/deer", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"Body",
+				"midsection",
+				"rear",
+				"head",
+				"neck2",
+				"neck",
+				"R front Upper Arm",
+				"L front Upper Arm",
+				"R back Upper Arm",
+				"L back Upper Arm"
+			]
+		}
+	},
+	{ 
+		"side": "Server", 
+		"file": "game:entities/land/bell", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"N",
+				"N tip",
+				"W",
+				"W tip",
+				"S",
+				"S tip",
+				"E",
+				"E tip",
+				"verebrae 6",
+				"funnel 1",
+				"funnel 2",
+				"top"
+			]
+		}
+	},
+	{ 
+		"side": "Server", 
+		"file": "game:entities/land/bear", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"body",
+				"shoulder",
+				"neck",
+				"head",
+				"cheeks",
+				"R front feet",
+				"L front feet",
+				"abdomen",
+				"R back feet",
+				"L back feet",
+				"mouth"
+			]
+		}
+	},
+			{ 
+		"side": "Server", 
+		"file": "game:entities/land/armorstand", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"UpperTorso",
+				"UpperArmL",
+				"LowerArmL",
+				"UpperArmR",
+				"LowerArmR",
+				"LowerTorso",
+				"Head",
+				"LowerFootL",
+				"LowerFootR",
+				"UpperFootR",
+				"UpperFootL"
+			]
+		}
+	},
+				{ 
+		"side": "Server", 
+		"file": "game:entities/land/armorstand-aged", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"UpperTorso",
+				"UpperArmL",
+				"LowerArmL",
+				"UpperArmR",
+				"LowerArmR",
+				"LowerTorso",
+				"Head",
+				"LowerFootL",
+				"LowerFootR",
+				"UpperFootR",
+				"UpperFootL"
+			]
+		}
+	},
+				{ 
+		"side": "Server", 
+		"file": "game:entities/land/chicken-baby", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"body",
+				"head"
+			]
+		}
+	},
+				{ 
+		"side": "Server", 
+		"file": "game:entities/land/chicken-hen", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"Body",
+				"throat",
+				"head",
+				"tail"
+			]
+		}
+	},
+				{ 
+		"side": "Server", 
+		"file": "game:entities/land/chicken-rooster", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"body",
+				"neck",
+				"head",
+				"L back feather",
+				"feather6",
+				"feather7"
+			]
+		}
+	},
+				{ 
+		"side": "Server", 
+		"file": "game:entities/land/fox-female", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"body",
+				"head",
+				"mouth",
+				"abdomen",
+				"tail end",
+				"L back feet",
+				"R back feet",
+				"left front feet",
+				"right front feet"
+			]
+		}
+	},
+					{ 
+		"side": "Server", 
+		"file": "game:entities/land/fox-male", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"body",
+				"head",
+				"mouth",
+				"abdomen",
+				"tail end",
+				"L back feet",
+				"R back feet",
+				"left front feet",
+				"right front feet"
+			]
+		}
+	},
+					{ 
+		"side": "Server", 
+		"file": "game:entities/land/gazelle-calf", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElements": [
+				"Body",
+				"head",
+				"mouth",
+				"mouth-up",
+				"L front Upper Arm",
+				"R front Upper Arm",
+				"L front lower arm",
+				"R front lower arm",
+				"abdomen",
+				"R back Upper Arm",
+				"L back Upper Arm",
+				"L back lower arm",
+				"R back lower arm"
+			]
+		}
+	}
+]

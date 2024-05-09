@@ -104,7 +104,7 @@ public class Animatable : CollectibleBehavior // Based on code from TeacupAngel 
     {
         mCurrentFirstPerson = IsFirstPerson(player);
 
-        CalculateAnimation(CurrentAnimatableShape?.GetAnimator(player.EntityId), clientApi, player, target, dt);
+        if (CurrentAnimatableShape != null) CalculateAnimation(CurrentAnimatableShape.GetAnimator(player.EntityId), CurrentAnimatableShape.Shape, clientApi, player, target, dt);
     }
 
     public virtual void RenderShape(IShaderProgram shaderProgram, IWorldAccessor world, AnimatableShape shape, ItemRenderInfo itemStackRenderInfo, IRenderAPI render, ItemStack itemStack, Vec4f lightrgbs, Matrixf itemModelMat, ItemSlot itemSlot, Entity entity, float dt)
@@ -144,7 +144,7 @@ public class Animatable : CollectibleBehavior // Based on code from TeacupAngel 
         }
     }
 
-    protected virtual void CalculateAnimation(AnimatorBase? animator, ICoreClientAPI clientApi, Entity entity, EnumItemRenderTarget target, float dt)
+    protected virtual void CalculateAnimation(AnimatorBase? animator, Shape shape, ICoreClientAPI clientApi, Entity entity, EnumItemRenderTarget target, float dt)
     {
         if (
             animator != null &&
@@ -158,7 +158,7 @@ public class Animatable : CollectibleBehavior // Based on code from TeacupAngel 
             )
         )
         {
-            if (RenderProceduralAnimations) mModSystem?.OnBeforeRender(animator, entity, dt);
+            if (RenderProceduralAnimations) mModSystem?.OnBeforeRender(animator, entity, dt, shape);
             animator.OnFrame(mActiveAnimationsByCode, dt);
         }
     }

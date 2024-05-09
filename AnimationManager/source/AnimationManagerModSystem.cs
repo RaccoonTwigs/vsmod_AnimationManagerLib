@@ -24,6 +24,7 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
         api.RegisterCollectibleBehaviorClass("Animatable", typeof(CollectibleBehaviors.Animatable));
         api.RegisterCollectibleBehaviorClass("AnimatableAttachable", typeof(CollectibleBehaviors.AnimatableAttachable));
         api.RegisterCollectibleBehaviorClass("AnimatableProcedural", typeof(CollectibleBehaviors.AnimatableProcedural));
+        api.RegisterEntityBehaviorClass("animationmanagerlib:colliders", typeof(Integration.CollidersEntityBehavior));
     }
     public override void StartClientSide(ICoreClientAPI api)
     {
@@ -34,7 +35,7 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
         _manager = new AnimationManager(api, synchronizer);
         synchronizer.Init(
             api,
-            (packet) => _manager.Run(packet.AnimationTarget, packet.RunId, packet.Requests),
+            (packet) => _manager.RunFromPacket(packet.AnimationTarget, packet.RunId, packet.Requests),
             (packet) => _manager.Stop(packet.RunId),
             ChannelName
         );
@@ -103,8 +104,18 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
 
         return true;
     }
-    internal void OnBeforeRender(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt)
+    internal void OnBeforeRender(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt, Shape shape)
     {
-        _manager?.OnFrameHandler(animator, entity, dt);
+        _manager?.OnFrameHandler(animator, shape, entity, dt);
     }
+}
+
+public class DebugRenderer : IRenderer
+{
+    public double RenderOrder => throw new NotImplementedException();
+
+    public int RenderRange => throw new NotImplementedException();
+
+    public void Dispose() => throw new NotImplementedException();
+    public void OnRenderFrame(float deltaTime, EnumRenderStage stage) => throw new NotImplementedException();
 }

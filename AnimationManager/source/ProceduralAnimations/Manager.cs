@@ -3,16 +3,16 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
-using VSImGui.API;
-using ProtoBuf;
-using System.Reflection;
+using Vintagestory.API.Datastructures;
 
 #if DEBUG
 using ImGuiNET;
 using VSImGui;
+using VSImGui.API;
 #endif
 
 namespace AnimationManagerLib;
@@ -44,17 +44,19 @@ public class AnimationManager : API.IAnimationManager
     }
 
     public bool Register(AnimationId id, AnimationData animation) => mProvider.Register(id, animation);
-    public Guid Run(AnimationTarget animationTarget, params AnimationRequest[] requests) => Run(Guid.NewGuid(), animationTarget, true, requests);
-    public Guid Run(AnimationTarget animationTarget, bool synchronize, params AnimationRequest[] requests) => Run(Guid.NewGuid(), animationTarget, synchronize, requests);
-    public Guid Run(AnimationTarget animationTarget, Guid runId, params AnimationRequest[] requests) => Run(runId, animationTarget, false, requests);
-    public Guid Run(AnimationTarget animationTarget, AnimationId animationId, params RunParameters[] parameters) => Run(Guid.NewGuid(), animationTarget, true, ToRequests(animationId, parameters));
-    public Guid Run(AnimationTarget animationTarget, bool synchronize, AnimationId animationId, params RunParameters[] parameters) => Run(Guid.NewGuid(), animationTarget, synchronize, ToRequests(animationId, parameters));
-    public void Stop(Guid runId)
+    public Guid Run(AnimationTarget animationTarget, params AnimationRequest[] requests) => Run(Guid.NewGuid(), animationTarget, true, false, requests);
+    public Guid Run(AnimationTarget animationTarget, bool synchronize, params AnimationRequest[] requests) => Run(Guid.NewGuid(), animationTarget, synchronize, false, requests);
+    public Guid Run(AnimationTarget animationTarget, Guid runId, params AnimationRequest[] requests) => Run(runId, animationTarget, false, false, requests);
+    public Guid Run(AnimationTarget animationTarget, AnimationId animationId, params RunParameters[] parameters) => Run(Guid.NewGuid(), animationTarget, true, false, ToRequests(animationId, parameters));
+    public Guid Run(AnimationTarget animationTarget, bool synchronize, AnimationId animationId, params RunParameters[] parameters) => Run(Guid.NewGuid(), animationTarget, synchronize, false, ToRequests(animationId, parameters));
+    public Guid RunFromPacket(AnimationTarget animationTarget, Guid runId, params AnimationRequest[] requests) => Run(runId, animationTarget, false, true, requests);
+    public void Stop(Guid runId) => Stop(runId, true);
+    public void Stop(Guid runId, bool synchronize)
     {
         if (mSynchronizedPackets.Contains(runId))
         {
             mSynchronizedPackets.Remove(runId);
-            mSynchronizer.Sync(new AnimationStopPacket(runId));
+            if (synchronize) mSynchronizer.Sync(new AnimationStopPacket(runId));
         }
 
         if (!mRequests.ContainsKey(runId))
@@ -71,7 +73,7 @@ public class AnimationManager : API.IAnimationManager
         mRequests.Remove(runId);
     }
 
-    private Guid Run(Guid id, AnimationTarget animationTarget, bool synchronize, params AnimationRequest[] requests)
+    private Guid Run(Guid id, AnimationTarget animationTarget, bool synchronize, bool fromServer, params AnimationRequest[] requests)
     {
         Debug.Assert(requests.Length > 0);
 
@@ -94,7 +96,7 @@ public class AnimationManager : API.IAnimationManager
             composer.Register(animationId, animation);
         }
 
-        if (synchronize && animationTarget.TargetType != AnimationTargetType.EntityFirstPerson && animationTarget.TargetType != AnimationTargetType.HeldItemFp)
+        if (synchronize && !fromServer && animationTarget.TargetType != AnimationTargetType.EntityFirstPerson && animationTarget.TargetType != AnimationTargetType.HeldItemFp)
         {
             AnimationRunPacket packet = new()
             {
@@ -114,6 +116,8 @@ public class AnimationManager : API.IAnimationManager
 
     public void OnFrameHandler(Vintagestory.API.Common.AnimationManager manager, Entity entity, float dt)
     {
+        if (entity == null || !entity.Alive) ValidateEntities();
+
         if (entity == null) return;
 
         AnimationTarget animationTarget;
@@ -142,7 +146,7 @@ public class AnimationManager : API.IAnimationManager
             animationTarget = new(entity.EntityId, AnimationTargetType.EntityThirdPerson);
         }
 
-        
+
 
         if (!mComposers.ContainsKey(animationTarget)) return;
 
@@ -159,8 +163,10 @@ public class AnimationManager : API.IAnimationManager
 
         mApplier.AddAnimation(entity.EntityId, composition);
     }
-    public void OnFrameHandler(Vintagestory.API.Common.IAnimator animator, Entity entity, float dt)
+    public void OnFrameHandler(Vintagestory.API.Common.IAnimator animator, Shape shape, Entity entity, float dt)
     {
+        if (entity == null || !entity.Alive) ValidateEntities();
+
         if (entity == null) return;
 
         AnimationTargetType targetType = AnimationTarget.GetItemTargetType(entity);
@@ -173,23 +179,51 @@ public class AnimationManager : API.IAnimationManager
         mAnimationFrames.Clear();
         TimeSpan timeSpan = TimeSpan.FromSeconds(dt);
         AnimationFrame composition = mComposers[animationTarget].Compose(timeSpan);
-        mApplier.AddAnimation(animator, composition);
+        mApplier.AddAnimation(animator, composition, shape);
     }
-    public void OnApplyAnimation(ElementPose pose, ref float weight)
+    public void OnApplyAnimation(ElementPose pose, ref float weight, Shape? shape = null)
     {
-        mApplier.ApplyAnimation(pose, ref weight);
+        if (shape == null)
+        {
+            mApplier.ApplyAnimation(pose, ref weight);
+        }
+        else
+        {
+            mApplier.ApplyAnimation(pose, shape, ref weight);
+        }
     }
-    public void OnApplyAnimation(Entity entity, ElementPose pose, ref float weight)
+    public void OnApplyAnimation(Entity entity, ElementPose pose, ref float weight, Shape? shape = null)
     {
-        mApplier.ApplyAnimation(pose, ref weight);
+        if (shape == null)
+        {
+            mApplier.ApplyAnimation(pose, ref weight);
+        }
+        else
+        {
+            mApplier.ApplyAnimation(pose, shape, ref weight);
+        }
     }
-    public void OnCalculateWeight(ElementPose pose, ref float weight)
+    public void OnCalculateWeight(ElementPose pose, ref float weight, Shape? shape = null)
     {
-        mApplier.CalculateWeight(pose, ref weight);
+        if (shape == null)
+        {
+            mApplier.CalculateWeight(pose, ref weight);
+        }
+        else
+        {
+            mApplier.CalculateWeight(pose, shape, ref weight);
+        }
     }
-    public void OnCalculateWeight(Entity entity, ElementPose pose, ref float weight)
+    public void OnCalculateWeight(Entity entity, ElementPose pose, ref float weight, Shape? shape = null)
     {
-        mApplier.CalculateWeight(pose, ref weight);
+        if (shape == null)
+        {
+            mApplier.CalculateWeight(pose, ref weight);
+        }
+        else
+        {
+            mApplier.CalculateWeight(pose, shape, ref weight);
+        }
     }
 
     private static AnimationRequest[] ToRequests(AnimationId animationId, params RunParameters[] parameters)
@@ -207,7 +241,7 @@ public class AnimationManager : API.IAnimationManager
         int count = 0;
         foreach ((Guid runId, _) in mEntitiesByRuns.Where(entry => entry.Value.EntityId == entityId))
         {
-            Stop(runId);
+            Stop(runId, synchronize: false);
             count++;
         }
         mClientApi.Logger.Debug($"[Animation Manager lib] Stopped {count} animations for entity: {entityId}");
@@ -227,35 +261,44 @@ public class AnimationManager : API.IAnimationManager
         }
     }
 
-    private bool ComposerCallback(Guid id, bool complete)
+    private bool ComposerCallback(Guid id, AnimationManagerLib.API.IAnimator.Status status)
     {
         if (!mRequests.ContainsKey(id)) return true;
-        if (!complete)
+
+        switch (status)
         {
-            RemoveRequest(id);
-            return true;
-        }
-        if (mRequests[id].Finished())
-        {
+            case API.IAnimator.Status.Running:
+                RemoveRequest(id);
+                return true;
+            case API.IAnimator.Status.Stopped:
+                if (mRequests[id].Finished()) return true;
+                AnimationRequest? request = mRequests[id].Next();
+                if (request == null) return true;
+                mComposers[mEntitiesByRuns[id]].Run(request.Value, (complete) => ComposerCallback(id, complete));
+
+                return false;
+            case API.IAnimator.Status.Finished:
+                if (mRequests[id].Finished())
+                {
 #if DEBUG
-            mProvider.Enqueue(mRequests[id]);
+                    mProvider.Enqueue(mRequests[id]);
 #endif
-            RemoveRequest(id);
-            return true;
-        }
-
-        AnimationRequest? request = mRequests[id].Next();
-
-        if (request == null)
-        {
+                    RemoveRequest(id);
+                    return true;
+                }
+                AnimationRequest? request2 = mRequests[id].Next();
+                if (request2 == null)
+                {
 #if DEBUG
-            mProvider.Enqueue(mRequests[id]);
+                    mProvider.Enqueue(mRequests[id]);
 #endif
-            RemoveRequest(id);
-            return true;
-        }
+                    RemoveRequest(id);
+                    return true;
+                }
+                mComposers[mEntitiesByRuns[id]].Run(request2.Value, (complete) => ComposerCallback(id, complete));
 
-        mComposers[mEntitiesByRuns[id]].Run((AnimationRequest)request, (complete) => ComposerCallback(id, complete));
+                return false;
+        }
 
         return false;
     }
@@ -342,6 +385,7 @@ public class AnimationManager : API.IAnimationManager
 internal class AnimationApplier
 {
     public Dictionary<ElementPose, (string name, AnimationFrame composition)> Poses { get; private set; } = new();
+    public Dictionary<Shape, Dictionary<ElementPose, (string name, AnimationFrame composition)>> PosesByShape { get; private set; } = new();
     static public Dictionary<uint, string> PosesNames { get; set; } = new();
 
     private readonly ICoreAPI mApi;
@@ -353,6 +397,17 @@ internal class AnimationApplier
         if (pose == null || !Poses.ContainsKey(pose)) return false;
 
         (string name, AnimationFrame? composition) = Poses[pose];
+
+        composition.Weight(ref weight, Utils.ToCrc32(name));
+
+        return true;
+    }
+
+    public bool CalculateWeight(ElementPose pose, Shape shape, ref float weight)
+    {
+        if (pose == null || !PosesByShape.ContainsKey(shape) || !PosesByShape[shape].ContainsKey(pose)) return false;
+
+        (string name, AnimationFrame? composition) = PosesByShape[shape][pose];
 
         composition.Weight(ref weight, Utils.ToCrc32(name));
 
@@ -371,6 +426,18 @@ internal class AnimationApplier
         return true;
     }
 
+    public bool ApplyAnimation(ElementPose pose, Shape shape, ref float weight)
+    {
+        if (pose == null || !PosesByShape.ContainsKey(shape) || !PosesByShape[shape].ContainsKey(pose)) return false;
+
+        (string name, AnimationFrame? composition) = PosesByShape[shape][pose];
+        composition.Apply(pose, ref weight, Utils.ToCrc32(name));
+
+        Poses.Remove(pose);
+
+        return true;
+    }
+
     public void AddAnimation(long entityId, AnimationFrame composition)
     {
         Vintagestory.API.Common.IAnimator? animator = mApi.World.GetEntityById(entityId).AnimManager.Animator;
@@ -379,7 +446,7 @@ internal class AnimationApplier
         {
             return;
         }
-        
+
         AddAnimation(animator, composition);
     }
 
@@ -393,9 +460,28 @@ internal class AnimationApplier
         }
     }
 
+    public void AddAnimation(Vintagestory.API.Common.IAnimator animator, AnimationFrame composition, Shape shape)
+    {
+        if (!PosesByShape.ContainsKey(shape))
+        {
+            PosesByShape[shape] = new();
+        }
+
+        foreach ((ElementId id, _) in composition.Elements)
+        {
+            string name = PosesNames[id.ElementNameHash];
+            ElementPose pose = animator.GetPosebyName(name);
+            if (pose != null) PosesByShape[shape][pose] = (name, composition);
+        }
+    }
+
     public void Clear()
     {
         Poses.Clear();
+        foreach ((Shape shape, _) in PosesByShape)
+        {
+            PosesByShape[shape].Clear();
+        }
     }
 }
 

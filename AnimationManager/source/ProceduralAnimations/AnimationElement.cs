@@ -22,23 +22,23 @@ internal struct ElementId
 {
     public uint ElementNameHash { get; set; }
     public ElementType ElementType { get; set; }
-    public readonly string Name => mDebugName;
+    public readonly string Name => _debugName;
 
 
-    private readonly string mDebugName;
-    private readonly int mHash;
+    private readonly string _debugName;
+    private readonly int _hash;
 
     public ElementId(string name, ElementType elementType)
     {
         ElementNameHash = Utils.ToCrc32(name);
-        mHash = (int)Utils.ToCrc32($"{name}{elementType}");
-        mDebugName = name;
+        _hash = (int)Utils.ToCrc32($"{name}{elementType}");
+        _debugName = name;
         ElementType = elementType;
     }
 
-    public readonly override string ToString() => $"{mDebugName}, type: {ElementType}";
-    public readonly override int GetHashCode() => mHash;
-    public readonly override bool Equals([NotNullWhen(true)] object? obj) => obj?.GetHashCode() == mHash;
+    public readonly override string ToString() => $"{_debugName}, type: {ElementType}";
+    public readonly override int GetHashCode() => _hash;
+    public readonly override bool Equals([NotNullWhen(true)] object? obj) => obj?.GetHashCode() == _hash;
     public static bool operator ==(ElementId left, ElementId right) => left.Equals(right);
     public static bool operator !=(ElementId left, ElementId right) => !(left == right);
 }

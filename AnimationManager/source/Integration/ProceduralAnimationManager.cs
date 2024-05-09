@@ -10,16 +10,16 @@ using Vintagestory.API.MathTools;
 
 namespace AnimationManagerLib.Integration;
 
-internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimationManager
+internal class ProceduralPlayerAnimationManager : Vintagestory.API.Common.PlayerAnimationManager
 {
-    public ProceduralAnimationManager(AnimationManager manager, ICoreClientAPI clientApi, Vintagestory.API.Common.AnimationManager previousManager)
+    public ProceduralPlayerAnimationManager(AnimationManager manager, ICoreClientAPI clientApi, Vintagestory.API.Common.AnimationManager previousManager)
     {
         api = clientApi;
         capi = clientApi;
         Triggers = previousManager.Triggers;
 
         entity = (Entity?)_managerEntity?.GetValue(previousManager);
-        if (previousManager.Animator != null) Animator = ProceduralClientAnimator.Create(manager, previousManager.Animator as ClientAnimator, entity);
+        if (previousManager.Animator != null) Animator = ProceduralClientAnimator.Create(manager, this, previousManager.Animator as ClientAnimator, entity);
         HeadController = previousManager.HeadController;
         ActiveAnimationsByAnimCode = previousManager.ActiveAnimationsByAnimCode;
 
@@ -33,9 +33,12 @@ internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimat
             Animator = base.Animator;
         }
 
-        _manager.OnFrameHandler(this, entity, dt);
-
-        base.OnClientFrame(dt);
+        try
+        {
+            _manager.OnFrameHandler(this, entity, dt);
+            base.OnClientFrame(dt);
+        }
+        catch { }
     }
 
     public new IAnimator Animator
@@ -43,7 +46,7 @@ internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimat
         get => base.Animator;
         set
         {
-            base.Animator = ProceduralClientAnimator.Create(_manager, value as ClientAnimator, entity);
+            base.Animator = ProceduralClientAnimator.Create(_manager, this, value as ClientAnimator, entity);
         }
     }
 
@@ -51,67 +54,131 @@ internal class ProceduralAnimationManager : Vintagestory.API.Common.PlayerAnimat
     private readonly AnimationManager _manager;
 }
 
+internal class ProceduralAnimationManager : Vintagestory.API.Common.AnimationManager
+{
+    public ProceduralAnimationManager(AnimationManager manager, ICoreClientAPI clientApi, Vintagestory.API.Common.AnimationManager previousManager)
+    {
+        api = clientApi;
+        capi = clientApi;
+        Triggers = previousManager.Triggers;
+
+        entity = (Entity?)_managerEntity?.GetValue(previousManager);
+        if (previousManager.Animator != null) Animator = ProceduralClientAnimator.Create(manager, this, previousManager.Animator as ClientAnimator, entity);
+        HeadController = previousManager.HeadController;
+        ActiveAnimationsByAnimCode = previousManager.ActiveAnimationsByAnimCode;
+
+        _manager = manager;
+    }
+
+    public override void OnClientFrame(float dt)
+    {
+        if (base.Animator is ClientAnimator && base.Animator is not ProceduralClientAnimator)
+        {
+            Animator = base.Animator;
+        }
+
+        try
+        {
+            _manager.OnFrameHandler(this, entity, dt);
+            base.OnClientFrame(dt);
+        }
+        catch { }
+    }
+
+    public new IAnimator Animator
+    {
+        get => base.Animator;
+        set
+        {
+            base.Animator = ProceduralClientAnimator.Create(_manager, this, value as ClientAnimator, entity);
+        }
+    }
+
+    private static readonly FieldInfo? _managerEntity = typeof(Vintagestory.API.Common.AnimationManager).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
+    private readonly AnimationManager _manager;
+}
+
+
+
 internal class ProceduralClientAnimator : ClientAnimator
 {
-
-    public ProceduralClientAnimator(ClientAnimator previous, AnimationManager manager, Entity? entity, WalkSpeedSupplierDelegate? walkSpeedSupplier, Vintagestory.API.Common.Animation[] animations, Action<string>? onAnimationStoppedListener = null) : base(walkSpeedSupplier, animations, onAnimationStoppedListener)
+    public ProceduralClientAnimator(ClientAnimator previous, EntityAgent entity, AnimationManager manager, Vintagestory.API.Common.Animation[] animations, Action<string> onAnimationStoppedListener) : base(
+        () => entity.Controls.MovespeedMultiplier * entity.GetWalkSpeedMultiplier(),
+        previous.RootPoses,
+        animations,
+        previous.rootElements,
+        previous.jointsById,
+        onAnimationStoppedListener
+        )
     {
+        _entity = entity;
+        _manager = manager;
+        _colliders = entity.GetBehavior<CollidersEntityBehavior>();
+        if (_colliders != null) _colliders.Animator = this;
+
         frameByDepthByAnimation = (List<ElementPose>[][])_frameByDepthByAnimation.GetValue(previous);
         nextFrameTransformsByAnimation = (List<ElementPose>[][])_nextFrameTransformsByAnimation.GetValue(previous);
         weightsByAnimationAndElement = (ShapeElementWeights[][][])_weightsByAnimationAndElement.GetValue(previous);
-        prevFrameArray = (int[])_prevFrame.GetValue(previous);
-        nextFrameArray = (int[])_nextFrame.GetValue(previous);
-        localTransformMatrix = (float[])_localTransformMatrix.GetValue(previous);
-        weightsByAnimationAndElement_this = (ShapeElementWeights[][][])_weightsByAnimationAndElement_this.GetValue(previous);
-        tmpMatrix = (float[])_tmpMatrix.GetValue(previous);
-
-        _entity = entity;
-        _manager = manager;
+        prevFrameArray = (int[])((int[])_prevFrame.GetValue(previous)).Clone();
+        nextFrameArray = (int[])((int[])_nextFrame.GetValue(previous)).Clone();
+        localTransformMatrix = (float[])((float[])_localTransformMatrix.GetValue(previous)).Clone();
+        weightsByAnimationAndElement_this = (ShapeElementWeights[][][])((ShapeElementWeights[][][])_weightsByAnimationAndElement_this.GetValue(previous)).Clone();
+        tmpMatrix = (float[])((float[])_tmpMatrix.GetValue(previous)).Clone();
     }
 
-    public ProceduralClientAnimator(AnimationManager manager, WalkSpeedSupplierDelegate walkSpeedSupplier, List<ElementPose> rootPoses, Vintagestory.API.Common.Animation[] animations, ShapeElement[] rootElements, Dictionary<int, AnimationJoint> jointsById) : base(walkSpeedSupplier, rootPoses, animations, rootElements, jointsById)
+    public ProceduralClientAnimator(Shape shape, AnimationManager manager, WalkSpeedSupplierDelegate walkSpeedSupplier, List<ElementPose> rootPoses, Vintagestory.API.Common.Animation[] animations, ShapeElement[] rootElements, Dictionary<int, AnimationJoint> jointsById, Action<string> onAnimationStoppedListener = null) : base(
+        walkSpeedSupplier,
+        rootPoses,
+        animations,
+        rootElements,
+        jointsById,
+        onAnimationStoppedListener
+        )
     {
+        _entity = null;
+        _manager = manager;
+        _shape = shape;
+
         frameByDepthByAnimation = (List<ElementPose>[][])_frameByDepthByAnimation.GetValue(this);
         nextFrameTransformsByAnimation = (List<ElementPose>[][])_nextFrameTransformsByAnimation.GetValue(this);
         weightsByAnimationAndElement = (ShapeElementWeights[][][])_weightsByAnimationAndElement.GetValue(this);
-        prevFrameArray = (int[])_prevFrame.GetValue(this);
-        nextFrameArray = (int[])_nextFrame.GetValue(this);
-        localTransformMatrix = (float[])_localTransformMatrix.GetValue(this);
-        weightsByAnimationAndElement_this = (ShapeElementWeights[][][])_weightsByAnimationAndElement_this.GetValue(this);
-        tmpMatrix = (float[])_tmpMatrix.GetValue(this);
-
-        _entity = null;
-        _manager = manager;
+        prevFrameArray = (int[])((int[])_prevFrame.GetValue(this)).Clone();
+        nextFrameArray = (int[])((int[])_nextFrame.GetValue(this)).Clone();
+        localTransformMatrix = (float[])((float[])_localTransformMatrix.GetValue(this)).Clone();
+        weightsByAnimationAndElement_this = (ShapeElementWeights[][][])((ShapeElementWeights[][][])_weightsByAnimationAndElement_this.GetValue(this)).Clone();
+        tmpMatrix = (float[])((float[])_tmpMatrix.GetValue(this)).Clone();
     }
 
-    public ProceduralClientAnimator(AnimationManager manager, WalkSpeedSupplierDelegate walkSpeedSupplier, Vintagestory.API.Common.Animation[] animations, ShapeElement[] rootElements, Dictionary<int, AnimationJoint> jointsById, Action<string> onAnimationStoppedListener = null) : base(walkSpeedSupplier, animations, rootElements, jointsById, onAnimationStoppedListener)
+    public ProceduralClientAnimator(Shape shape, AnimationManager manager, WalkSpeedSupplierDelegate walkSpeedSupplier, Vintagestory.API.Common.Animation[] animations, ShapeElement[] rootElements, Dictionary<int, AnimationJoint> jointsById, Action<string> onAnimationStoppedListener = null) : base(
+        walkSpeedSupplier,
+        animations,
+        rootElements,
+        jointsById,
+        onAnimationStoppedListener
+        )
     {
+        _entity = null;
+        _manager = manager;
+        _shape = shape;
+
         frameByDepthByAnimation = (List<ElementPose>[][])_frameByDepthByAnimation.GetValue(this);
         nextFrameTransformsByAnimation = (List<ElementPose>[][])_nextFrameTransformsByAnimation.GetValue(this);
         weightsByAnimationAndElement = (ShapeElementWeights[][][])_weightsByAnimationAndElement.GetValue(this);
-        prevFrameArray = (int[])_prevFrame.GetValue(this);
-        nextFrameArray = (int[])_nextFrame.GetValue(this);
-        localTransformMatrix = (float[])_localTransformMatrix.GetValue(this);
-        weightsByAnimationAndElement_this = (ShapeElementWeights[][][])_weightsByAnimationAndElement_this.GetValue(this);
-        tmpMatrix = (float[])_tmpMatrix.GetValue(this);
-
-        _entity = null;
-        _manager = manager;
+        prevFrameArray = (int[])((int[])_prevFrame.GetValue(this)).Clone();
+        nextFrameArray = (int[])((int[])_nextFrame.GetValue(this)).Clone();
+        localTransformMatrix = (float[])((float[])_localTransformMatrix.GetValue(this)).Clone();
+        weightsByAnimationAndElement_this = (ShapeElementWeights[][][])((ShapeElementWeights[][][])_weightsByAnimationAndElement_this.GetValue(this)).Clone();
+        tmpMatrix = (float[])((float[])_tmpMatrix.GetValue(this)).Clone();
     }
 
-    public static ProceduralClientAnimator Create(AnimationManager manager, ClientAnimator previousAnimator, Entity entity)
+    public static ProceduralClientAnimator Create(AnimationManager manager, Vintagestory.API.Common.AnimationManager proceduralManager, ClientAnimator previousAnimator, Entity entity)
     {
         WalkSpeedSupplierDelegate? walkSpeedSupplier = (WalkSpeedSupplierDelegate?)_walkSpeedSupplier?.GetValue(previousAnimator);
         Action<string>? onAnimationStoppedListener = (Action<string>?)_onAnimationStoppedListener?.GetValue(previousAnimator);
-        Vintagestory.API.Common.Animation[] animations = previousAnimator.anims.Select(entry => entry.Animation).ToArray();
+        Vintagestory.API.Common.Animation[] animations = (Vintagestory.API.Common.Animation[])previousAnimator.anims.Select(entry => entry.Animation).ToArray().Clone();
 
-        ProceduralClientAnimator result = new(previousAnimator, manager, entity, walkSpeedSupplier, animations, onAnimationStoppedListener);
+        ProceduralClientAnimator result = new(previousAnimator, entity as EntityAgent, manager, animations, proceduralManager.OnAnimationStopped);
 
-        result.rootElements = previousAnimator.rootElements;
-        result.RootPoses = previousAnimator.RootPoses;
-        result.jointsById = previousAnimator.jointsById;
-        result.anims = previousAnimator.anims;
-        result.AttachmentPointByCode = previousAnimator.AttachmentPointByCode;
 
         return result;
     }
@@ -147,7 +214,21 @@ internal class ProceduralClientAnimator : ClientAnimator
                 }
             }
 
+            float[] tmp = new float[16];
+            Mat4f.Identity(tmp);
+
             CalculateMatrices(num, dt, RootPoses, weightsByAnimationAndElement[0], Mat4f.Create(), frameByDepthByAnimation[0], nextFrameTransformsByAnimation[0], 0);
+
+            #region Colliders
+            /*if (_colliders != null && _entity != null)
+            {
+                foreach ((_, ShapeElementCollider collider) in _colliders.Colliders)
+                {
+                    collider.Transform(TransformationMatrices4x3, _entity.Api as ICoreClientAPI);
+                }
+                _colliders.CalculateBoundingBox();
+            }*/
+            #endregion
 
             for (int j = 0; j < GlobalConstants.MaxAnimatedElements; j++)
             {
@@ -175,7 +256,9 @@ internal class ProceduralClientAnimator : ClientAnimator
     }
 
     private readonly Entity? _entity;
+    private readonly CollidersEntityBehavior? _colliders;
     private readonly AnimationManager _manager;
+    private readonly Shape? _shape;
 
     private readonly List<ElementPose>[][] frameByDepthByAnimation;
     private readonly List<ElementPose>[][] nextFrameTransformsByAnimation;
@@ -215,7 +298,6 @@ internal class ProceduralClientAnimator : ClientAnimator
         List<ElementPose>[] nextChildKeyFrameByAnimation = nextFrameTransformsByAnimation[depth];
         ShapeElementWeights[][] childWeightsByAnimationAndElement = weightsByAnimationAndElement_this[depth];
 
-
         for (int childPoseIndex = 0; childPoseIndex < outFrame.Count; childPoseIndex++)
         {
             ElementPose outFramePose = outFrame[childPoseIndex];
@@ -233,11 +315,11 @@ internal class ProceduralClientAnimator : ClientAnimator
             {
                 if (_entity != null)
                 {
-                    _manager.OnCalculateWeight(_entity, outFramePose, ref weightSum);
+                    _manager.OnCalculateWeight(_entity, outFramePose, ref weightSum, _shape);
                 }
                 else
                 {
-                    _manager.OnCalculateWeight(outFramePose, ref weightSum);
+                    _manager.OnCalculateWeight(outFramePose, ref weightSum, _shape);
                 }
             }
             catch (Exception exception)
@@ -260,11 +342,11 @@ internal class ProceduralClientAnimator : ClientAnimator
             {
                 if (_entity != null)
                 {
-                    _manager.OnApplyAnimation(_entity, outFramePose, ref weightSumCopy);
+                    _manager.OnApplyAnimation(_entity, outFramePose, ref weightSumCopy, _shape);
                 }
                 else
                 {
-                    _manager.OnApplyAnimation(outFramePose, ref weightSumCopy);
+                    _manager.OnApplyAnimation(outFramePose, ref weightSumCopy, _shape);
                 }
             }
             catch (Exception exception)
@@ -273,8 +355,20 @@ internal class ProceduralClientAnimator : ClientAnimator
 
             elem.GetLocalTransformMatrix(animVersion, localTransformMatrix, outFramePose);
             Mat4f.Mul(outFramePose.AnimModelMatrix, outFramePose.AnimModelMatrix, localTransformMatrix);
-
             CalculateElementTransformMatrices(elem, outFramePose);
+
+            #region Colliders
+            if (_colliders != null && _colliders.UnprocessedElementsLeft && _colliders.ShapeElementsToProcess.Contains(elem.Name))
+            {
+                _colliders.Colliders.Add(elem.Name, new ShapeElementCollider(elem));
+                _colliders.ShapeElementsToProcess.Remove(elem.Name);
+                _colliders.UnprocessedElementsLeft = _colliders.ShapeElementsToProcess.Count > 0;
+            }
+            #endregion
+
+            float[] prevNew = new float[16];
+            SetMat(tmpMatrix, prevNew);
+
 
             if (outFramePose.ChildElementPoses != null)
             {
@@ -300,6 +394,14 @@ internal class ProceduralClientAnimator : ClientAnimator
         for (int i = 0; i < 16; i++)
         {
             pose.AnimModelMatrix[i] = modelMatrix[i];
+        }
+    }
+
+    private static void SetMat(float[] from, float[] to)
+    {
+        for (int i = 0; i < 16; i++)
+        {
+            to[i] = from[i];
         }
     }
 

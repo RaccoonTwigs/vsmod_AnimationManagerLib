@@ -26,8 +26,17 @@ internal static class AnimatorPatch
             );
 
         new Harmony(harmonyId).Patch(
-                typeof(EntityPlayer).GetMethod("Initialize", AccessTools.all),
+                typeof(EntityAgent).GetMethod("Initialize", AccessTools.all),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(ReplaceAnimationManagers)))
+            );
+
+        new Harmony(harmonyId).Patch(
+                typeof(EntityShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderColliders)))
+            );
+        new Harmony(harmonyId).Patch(
+                typeof(EntityPlayerShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderCollidersPlayer)))
             );
 
         _manager = manager;
@@ -39,6 +48,9 @@ internal static class AnimatorPatch
         new Harmony(harmonyId).Unpatch(typeof(EntityShapeRenderer).GetMethod("RenderHeldItem", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("updateEyeHeight", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("Initialize", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
+
+        new Harmony(harmonyId).Unpatch(typeof(EntityShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all), HarmonyPatchType.Postfix, harmonyId);
+        new Harmony(harmonyId).Unpatch(typeof(EntityPlayerShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all), HarmonyPatchType.Postfix, harmonyId);
     }
 
     private static AnimationManager? _manager;
@@ -48,9 +60,18 @@ internal static class AnimatorPatch
 
     private static bool RenderHeldItem(EntityShapeRenderer __instance, float dt, bool isShadowPass, bool right)
     {
-        if (isShadowPass || !right) return true;
+        if (isShadowPass) return true;
 
-        ItemSlot? slot = (__instance.entity as EntityPlayer)?.RightHandItemSlot;
+        ItemSlot? slot;
+
+        if (right)
+        {
+            slot = (__instance.entity as EntityPlayer)?.RightHandItemSlot;
+        }
+        else
+        {
+            slot = (__instance.entity as EntityPlayer)?.LeftHandItemSlot;
+        }
 
         if (slot?.Itemstack?.Item == null) return true;
 
@@ -79,25 +100,70 @@ internal static class AnimatorPatch
         return false;
     }
 
-    private static void ReplaceAnimationManagers(EntityPlayer __instance)
+    private static void ReplaceAnimationManagers(EntityAgent __instance)
     {
-        try
+        
+        if (__instance is EntityPlayer)
         {
-            Vintagestory.API.Common.AnimationManager animManager = (Vintagestory.API.Common.AnimationManager)_animManager.GetValue(__instance);
-            ProceduralAnimationManager animManagerReplacer = new(_manager, _coreClientAPI, animManager)
+            try
             {
-                UseFpAnmations = false
-            };
-            _animManager.SetValue(__instance, animManagerReplacer);
+                Vintagestory.API.Common.AnimationManager animManager = (Vintagestory.API.Common.AnimationManager)_animManager.GetValue(__instance);
+                ProceduralPlayerAnimationManager animManagerReplacer = new(_manager, _coreClientAPI, animManager)
+                {
+                    UseFpAnmations = false
+                };
+                _animManager.SetValue(__instance, animManagerReplacer);
 
-            Vintagestory.API.Common.AnimationManager selfFpAnimManager = (Vintagestory.API.Common.AnimationManager)_selfFpAnimManager.GetValue(__instance);
-            ProceduralAnimationManager selfFpAnimManagerReplacer = new(_manager, _coreClientAPI, selfFpAnimManager);
-            _selfFpAnimManager.SetValue(__instance, selfFpAnimManagerReplacer);
+                Vintagestory.API.Common.AnimationManager selfFpAnimManager = (Vintagestory.API.Common.AnimationManager)_selfFpAnimManager.GetValue(__instance);
+                ProceduralPlayerAnimationManager selfFpAnimManagerReplacer = new(_manager, _coreClientAPI, selfFpAnimManager);
+                _selfFpAnimManager.SetValue(__instance, selfFpAnimManagerReplacer);
+            }
+            catch (Exception exception)
+            {
+                _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.");
+                _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.\nException: {exception}\n");
+            }
         }
-        catch (Exception exception)
+        else
         {
-            _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.");
-            _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.\nException: {exception}\n");
+            try
+            {
+                __instance.AnimManager = new ProceduralAnimationManager(_manager, _coreClientAPI, __instance.AnimManager as Vintagestory.API.Common.AnimationManager);
+            }
+            catch (Exception exception)
+            {
+                _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.");
+                _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.\nException: {exception}\n");
+            }
         }
     }
+
+    private static void RenderColliders(EntityShapeRenderer __instance)
+    {
+        IShaderProgram? currentShader = _coreClientAPI?.Render.CurrentActiveShader;
+        currentShader?.Stop();
+
+        EntityAgent? agent = GetEntityAgent(__instance);
+        agent?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, agent, __instance);
+
+        currentShader?.Use();
+    }
+    private static void RenderCollidersPlayer(EntityPlayerShapeRenderer __instance)
+    {
+        IShaderProgram? currentShader = _coreClientAPI?.Render.CurrentActiveShader;
+        currentShader?.Stop();
+
+        EntityAgent? agent = GetEntityAgent(__instance);
+        agent?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, agent, __instance);
+
+        currentShader?.Use();
+    }
+
+    private static EntityAgent? GetEntityAgent(EntityShapeRenderer renderer)
+    {
+        return (EntityAgent?)typeof(EntityShapeRenderer)
+            .GetField("eagent", BindingFlags.NonPublic | BindingFlags.Instance)
+            ?.GetValue(renderer);
+    }
+
 }

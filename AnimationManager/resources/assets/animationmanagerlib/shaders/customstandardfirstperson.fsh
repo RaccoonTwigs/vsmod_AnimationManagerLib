@@ -4,6 +4,12 @@
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outGlow;
 
+#if SSAOLEVEL > 0
+in vec4 gnormal;
+layout(location = 2) out vec4 outGNormal;
+layout(location = 3) out vec4 outGPosition;
+#endif
+
 uniform sampler2D tex;
 uniform float extraGodray = 0;
 uniform float alphaTest = 0.001;
@@ -85,6 +91,15 @@ void main() {
 #if SHINYEFFECT > 0	
 	outColor = mix(applyReflectiveEffect(outColor, glow, renderFlags, uv, normal, worldPos, camPos, vec3(1)), outColor, min(1, 2 * fogAmount));
 	glow = pow(max(0, dot(normal, lightPosition)), 6) / 8 * shadowIntensity * (1 - fogAmount);
+#endif
+
+#if SSAOLEVEL > 0
+	if (applySsao > 0) {
+		outGPosition = vec4(camPos.xyz, fogAmount + glowLevel);
+	} else {
+		outGPosition = vec4(camPos.xyz, 1);
+	}
+	outGNormal = vec4(gnormal.xyz, ssaoAttn);
 #endif
 
 #if NORMALVIEW > 0
