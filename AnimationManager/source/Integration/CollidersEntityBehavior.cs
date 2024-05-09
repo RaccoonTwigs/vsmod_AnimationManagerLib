@@ -105,7 +105,7 @@ public readonly struct CuboidAABBCollider
         VertexB = new(cuboid.X2, cuboid.Y2, cuboid.Z2);
     }
 
-    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out float parameter) // @TODO check if this works
+    public bool Collide(Vector3 segmentStart, Vector3 segmentDirection, out float parameter)
     {
         Vector3 min = Vector3.Min(VertexA, VertexB);
         Vector3 max = Vector3.Max(VertexA, VertexB);

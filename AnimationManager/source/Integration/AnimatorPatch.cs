@@ -158,7 +158,7 @@ internal static class AnimatorPatch
 
         currentShader?.Use();
     }
-    // Returns protected eagent field using reflection
+
     private static EntityAgent? GetEntityAgent(EntityShapeRenderer renderer)
     {
         return (EntityAgent?)typeof(EntityShapeRenderer)
