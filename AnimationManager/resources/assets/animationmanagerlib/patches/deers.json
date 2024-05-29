@@ -1,0 +1,363 @@
+[
+	{ 
+		"side": "Server", 
+		"file": "game:entities/land/hooved/deer", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElementsByType": {
+			"*-caribou-*-adult": [
+				"Body",
+				"neck2",
+				"nose bridge",
+				"rear",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"midsection"
+			],
+			"*-caribou-*-baby": [
+				"Body",
+				"neck2",
+				"nose bridge",
+				"head",
+				"rear",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Midsection"
+			],
+			"*-chital-*-adult": [
+				"Body",
+				"neck2",
+				"nose bridge",
+				"rear",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Cube2"
+			],
+			"*-elk-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"nose bridge",
+				"head",
+				"rear",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"midsection"
+			],
+			"*-elk-*-baby": [
+				"Body",
+				"neck",
+				"neck2",
+				"head",
+				"nose bridge",
+				"rear",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Midsection"
+			],
+			"*-guemal-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"nose bridge",
+				"rear",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Cube2"
+			],
+			"*-marsh-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"nose bridge",
+				"rear",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"midsection"
+			],
+			"*-marsh-*-baby": [
+				"Body",
+				"neck",
+				"neck2",
+				"nose bridge",
+				"rear",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Midsection"
+			],
+			"*-pampas-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"rear",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Midsection"
+			],
+			"*-pampas-*-baby": [
+				"Body",
+				"neck",
+				"neck2",
+				"rear",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"midsection"
+			],
+			"*-pupu-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"rear",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Midsection"
+			],
+			"*-redbrocket-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"rear",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"midsection"
+			],
+			"*-redbrocket-*-baby" : [
+				"Body",
+				"neck",
+				"neck2",
+				"abdomen",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Cube2"
+			],
+			"*-taruca-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"rear",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"midsection"
+			],
+			"*-taruca-*-baby": [
+				"Body",
+				"neck",
+				"neck2",
+				"rear",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Cube2"
+			],
+			"*-water-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"abdomen",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Midsection"
+			],
+			"*-water-*-baby": [
+				"Body",
+				"neck",
+				"neck2",
+				"abdomen",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Cube2"
+			],
+			"*-whitetail-*-adult": [
+				"Body",
+				"neck",
+				"neck2",
+				"abdomen",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"midsection"
+			],
+			"*-whitetail-*-baby": [
+				"Body",
+				"neck",
+				"neck2",
+				"rear",
+				"head",
+				"nose bridge",
+				"L back lower arm",
+				"R back lower arm",
+				"L front lower arm",
+				"R front lower arm",
+				"Midsection"
+			]},
+			"elementsTypesByType": {
+			"*-whitetail-*-adult": {
+			"Torso": ["Body", "abdomen", "midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-whitetail-*-baby": {
+			"Torso": ["Body", "rear", "Midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-water-*-baby": {
+			"Torso": ["Body", "abdomen", "Cube2"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-water-*-adult": {
+			"Torso": ["Body", "abdomen", "Midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-taruca-*-baby": {
+			"Torso": ["Body", "rear", "Cube2"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-taruca-*-adult": {
+			"Torso": ["Body", "rear", "midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-redbrocket-*-baby": {
+			"Torso": ["Body", "abdomen", "Cube2"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-redbrocket-*-adult": {
+			"Torso": ["Body", "rear", "midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-pupu-*-adult": {
+			"Torso": ["Body", "rear", "Midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-pampas-*-baby": {
+			"Torso": ["Body", "rear", "midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-pampas-*-adult": {
+			"Torso": ["Body", "rear", "Midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-marsh-*-baby": {
+			"Torso": ["Body", "rear", "Midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-marsh-*-adult": {
+			"Torso": ["Body", "rear", "midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-guemal-*-adult": {
+			"Torso": ["Body", "rear", "Cube2"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-elk-*-baby": {
+			"Torso": ["Body", "rear", "Midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-elk-*-adult": {
+			"Torso": ["Body", "rear", "midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-chital-*-adult": {
+			"Torso": ["Body", "rear", "Cube2"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck2"]
+			},
+			"*-caribou-*-adult": {
+			"Torso": ["Body", "rear", "midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck", "neck2"]
+			},
+			"*-caribou-*-baby": {
+			"Torso": ["Body", "abdomen", "Midsection"],
+			"Head": ["head", "nosebridge"],
+			"Leg": ["L back lower arm", "R back lower arm", "L front lower arm", "R front lower arm"],
+			"Critical": ["neck2"]
+			}}
+	}
+}]
