@@ -260,7 +260,7 @@ internal class Animation : IAnimation, ISerializable
         bool modified = false;
 
 #if DEBUG
-        ImGui.SliderInt($"Key frame##{id}", ref mCurrentFrame, 0, mKeyFrames.Length - 1);
+        ImGui.SliderInt($"Key frame index##{id}", ref mCurrentFrame, 0, mKeyFrames.Length - 1);
 
         int keyFrameFrame = mFrames[mCurrentFrame];
         ImGui.SliderInt($"Key frame position##{id}", ref keyFrameFrame, mCurrentFrame == 0 ? 0 : mFrames[mCurrentFrame - 1], mCurrentFrame == mKeyFrames.Length - 1 ? (int)mTotalFrames : mFrames[mCurrentFrame + 1]);

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Vintagestory.API.Common;
 
+
 #if DEBUG
 using ImGuiNET;
 using VSImGui;
@@ -163,6 +164,9 @@ internal class AnimationFrame : IWithGuiEditor, ISerializable
         ElementId id = new(name, elementType);
         AnimationElement element = new(id, new((float)value, weight), shortestAngularDistance);
         Elements.Add(id, (element, blendMode));
+#if DEBUG
+        if (!_elements.Contains(name)) _elements.Add(name);
+#endif
     }
     static protected EnumAnimationBlendMode GetBlendMode(EnumAnimationBlendMode categoryMode, EnumAnimationBlendMode? elementMode)
     {
@@ -236,42 +240,41 @@ internal class AnimationFrame : IWithGuiEditor, ISerializable
     private readonly HashSet<ElementId> mModifiedElements = new();
 #if DEBUG
     private readonly EnumEditor<EnumAnimationBlendMode> mBlendModeEditor = new();
-    private const float cEpsilon = 1e-6f;
-    private string mElementFilter = "";
-    private int mCurrentElement = 0;
-    private ElementId? mLastElement = null;
+    private const float _epsilon = 1e-6f;
+    private string _elementFilter = "";
+    private int _currentElement = 0;
+    private ElementId? _lastElement = null;
+    private List<string> _elements = new();
+
 #endif
     public bool Editor(string id)
     {
         bool modified = false;
+
 #if DEBUG
-        DefaultBlendMode = mBlendModeEditor.Editor($"Default blend mode##{id}", DefaultBlendMode, ref modified);
+        //DefaultBlendMode = mBlendModeEditor.Editor($"Default blend mode##{id}", DefaultBlendMode, ref modified);
 
-        float defaultElementWeight = DefaultElementWeight;
-        ImGui.DragFloat($"Default element weight##{id}", ref defaultElementWeight);
-        if (Math.Abs(DefaultElementWeight - defaultElementWeight) > cEpsilon) modified = true;
-        DefaultElementWeight = defaultElementWeight;
+        /* float defaultElementWeight = DefaultElementWeight;
+         ImGui.DragFloat($"Default element weight##{id}", ref defaultElementWeight);
+         if (Math.Abs(DefaultElementWeight - defaultElementWeight) > cEpsilon) modified = true;
+         DefaultElementWeight = defaultElementWeight;*/
 
-        ImGui.InputTextWithHint($"Elements filter##{id}", "supports wildcards", ref mElementFilter, 100);
-        FilterElements(StyleEditor.WildCardToRegular(mElementFilter), out string[] elementNames, out ElementId[] ids);
+        /*ImGui.InputTextWithHint($"Elements filter##{id}", "supports wildcards", ref _elementFilter, 100);
+        FilterElements(StyleEditor.WildCardToRegular(_elementFilter), out string[] elementNames, out ElementId[] ids);*/
 
-        ImGui.ListBox($"Elements##{id}", ref mCurrentElement, elementNames, elementNames.Length);
+        if (_currentElement >= _elements.Count) _currentElement = 0;
+        ImGui.ListBox($"Elements##{id}", ref _currentElement, _elements.ToArray(), _elements.Count);
 
-        mLastElement = mCurrentElement >= ids.Length ? mLastElement : ids[mCurrentElement];
+        if (_elements.Count == 0) return false;
 
-        if (mLastElement == null) return false;
+        string element = _elements[_currentElement];
 
-        (AnimationElement element, EnumAnimationBlendMode blendMode) = Elements[mLastElement.Value];
+        IEnumerable<KeyValuePair<ElementId, (AnimationElement element, EnumAnimationBlendMode blendMode)>> elementValues = Elements.Where(entry => entry.Key.Name == element);
 
-        ImGui.SeparatorText("Element");
-        blendMode = mBlendModeEditor.Editor($"Element blend mode##{id}", blendMode, ref modified);
-
-        if (element.Editor($"{id}Element")) modified = true;
-
-        if (modified)
+        foreach ((ElementId elementId, (AnimationElement elementValue, EnumAnimationBlendMode blendMode)) in elementValues)
         {
-            Elements[mLastElement.Value] = new(element, blendMode);
-            if (!mModifiedElements.Contains(mLastElement.Value)) mModifiedElements.Add(mLastElement.Value);
+            elementValue.Editor($"{elementId.ElementType}##{id}");
+            Elements[elementId] = new(elementValue, blendMode);
         }
 #endif
 
@@ -300,14 +303,14 @@ internal class AnimationFrame : IWithGuiEditor, ISerializable
             }
         }
 
-        if (mLastElement != null && newIds.Contains(mLastElement.Value))
+        if (_lastElement != null && newIds.Contains(_lastElement.Value))
         {
-            mCurrentElement = newIds.FindIndex((value) => mLastElement.Value == value);
+            _currentElement = newIds.FindIndex((value) => _lastElement.Value == value);
         }
-        else if (mCurrentElement >= newIds.Count)
+        else if (_currentElement >= newIds.Count)
         {
-            mLastElement = null;
-            mCurrentElement = 0;
+            _lastElement = null;
+            _currentElement = 0;
         }
 
         names = newNames.ToArray();

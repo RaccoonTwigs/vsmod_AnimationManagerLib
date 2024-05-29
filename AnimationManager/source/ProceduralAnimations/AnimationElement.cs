@@ -3,8 +3,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
-using System.Numerics;
-using System;
 
 #if DEBUG
 using ImGuiNET;
@@ -216,45 +214,23 @@ internal struct AnimationElement : IWithGuiEditor
     public bool Editor(string id)
     {
 #if DEBUG
-        bool hasValue = Value != null;
-        ImGui.Checkbox($"Enabled##{id}", ref hasValue);
-        bool modified = hasValue != (Value != null);
-        bool turnedOff = modified && !hasValue;
-        bool turnedOn = modified && hasValue;
 
-        if (turnedOff)
+        if (!Value.HasValue) return false;
+
+        if (Id.ElementType == ElementType.translateX || Id.ElementType == ElementType.translateY || Id.ElementType == ElementType.translateZ)
         {
-            mLastValue = Value;
+            WeightedValue value = Value.Value;
+            value.Editor(id, 1600);
+            Value = value;
         }
-        if (turnedOn)
+        else
         {
-            Value = mLastValue ?? new(0, 0);
+            WeightedValue value = Value.Value;
+            value.Editor(id);
+            Value = value;
         }
 
-        if (!hasValue) ImGui.BeginDisabled();
-        if (Value != null || mLastValue != null)
-        {
-            bool shortestAngularDistance = ShortestAngularDistance;
-            if (ImGui.Checkbox($"Shortest angular distance##{id}", ref shortestAngularDistance)) modified = true;
-            ShortestAngularDistance = shortestAngularDistance;
-            WeightedValue value = Value ?? mLastValue ?? new(0, 0);
-
-            if (Id.ElementType == ElementType.translateX || Id.ElementType == ElementType.translateY || Id.ElementType == ElementType.translateZ)
-            {
-                if (value.Editor($"{id}Value", 1600)) modified = true;
-            }
-            else
-            {
-                if (value.Editor($"{id}Value")) modified = true;
-            }
-
-            
-            if (Value != null) Value = value;
-            if (mLastValue != null) mLastValue = value;
-        }
-        if (!hasValue) ImGui.EndDisabled();
-
-        return modified;
+        return false;
 #else
         return false;
 #endif
@@ -396,12 +372,12 @@ internal struct WeightedValue : IWithGuiEditor
     public bool Editor(string id)
     {
 #if DEBUG
-        Vector2 value = new(Value, Weight);
-        ImGui.DragFloat2($"Value & Weight##{id}", ref value);
-        bool modified = MathF.Abs(Value - value.X) > Epsilon || MathF.Abs(Weight - value.Y) > Epsilon;
-        Value = value.X;
-        Weight = value.Y;
-        return modified;
+        float speed = ShiftModifier() ? 0.1f : 1.0f;
+
+        float value = Value;
+        ImGui.DragFloat(id, ref value, speed);
+        Value = value;
+        return false;
 #else
         return false;
 #endif
@@ -410,14 +386,22 @@ internal struct WeightedValue : IWithGuiEditor
     public bool Editor(string id, float multiplier)
     {
 #if DEBUG
-        Vector2 value = new(Value * multiplier, Weight);
-        ImGui.DragFloat2($"Value & Weight##{id}", ref value);
-        bool modified = Math.Abs(Value - value.X / multiplier) > Epsilon || Math.Abs(Weight - value.Y) > Epsilon;
-        Value = value.X / multiplier;
-        Weight = value.Y;
-        return modified;
+        float speed = ShiftModifier() ? 0.1f : 1.0f;
+
+        float value = Value * multiplier;
+        ImGui.DragFloat(id, ref value, speed);
+        Value = value / multiplier;
+        return false;
 #else
         return false;
 #endif
     }
+
+#if DEBUG
+    private bool ShiftModifier()
+    {
+        ImGuiIOPtr io = ImGui.GetIO();
+        return io.KeyShift;
+    }
+#endif
 }

@@ -22,7 +22,7 @@ public class AnimationManager : API.IAnimationManager
     private readonly ICoreClientAPI mClientApi;
     private readonly ISynchronizer mSynchronizer;
     private readonly AnimationApplier mApplier;
-    private readonly AnimationProvider mProvider;
+    internal readonly AnimationProvider mProvider;
 
     private readonly Dictionary<AnimationTarget, IComposer> mComposers = new();
 
@@ -38,7 +38,7 @@ public class AnimationManager : API.IAnimationManager
         mApplier = new(api);
         mProvider = new(api, this);
 #if DEBUG
-        api.ModLoader.GetModSystem<VSImGui.ImGuiModSystem>().Draw += SetUpDebugWindow;
+        //api.ModLoader.GetModSystem<VSImGui.ImGuiModSystem>().Draw += SetUpDebugWindow;
         Api = api;
 #endif
     }
@@ -487,14 +487,14 @@ internal class AnimationApplier
 
 internal class AnimationProvider
 {
-    private readonly Dictionary<AnimationId, AnimationData> mAnimationsToConstruct = new();
-    private readonly Dictionary<(AnimationId, AnimationTarget), IAnimation> mConstructedAnimations = new();
-    private readonly Dictionary<AnimationId, IAnimation> mAnimations = new();
-    private readonly ICoreClientAPI mApi;
+    internal readonly Dictionary<AnimationId, AnimationData> _animationsToConstruct = new();
+    internal readonly Dictionary<(AnimationId, AnimationTarget), IAnimation> _constructedAnimations = new();
+    internal readonly Dictionary<AnimationId, IAnimation> _animations = new();
+    internal readonly ICoreClientAPI _api;
 
     public AnimationProvider(ICoreClientAPI api, API.IAnimationManager manager)
     {
-        mApi = api;
+        _api = api;
 #if DEBUG
         mManager = manager;
 #endif
@@ -504,30 +504,30 @@ internal class AnimationProvider
     {
         if (data.Shape == null)
         {
-            return mAnimationsToConstruct.TryAdd(id, data);
+            return _animationsToConstruct.TryAdd(id, data);
         }
         else
         {
-            IAnimation? animation = ConstructAnimation(mApi, id, data, data.Shape);
+            IAnimation? animation = ConstructAnimation(_api, id, data, data.Shape);
             if (animation == null) return false;
-            return mAnimations.TryAdd(id, animation);
+            return _animations.TryAdd(id, animation);
         }
     }
 
     public IAnimation? Get(AnimationId id, AnimationTarget target)
     {
-        if (mAnimations.ContainsKey(id)) return mAnimations[id];
-        if (mConstructedAnimations.ContainsKey((id, target))) return mConstructedAnimations[(id, target)];
-        if (!mAnimationsToConstruct.ContainsKey(id)) return null;
+        if (_animations.ContainsKey(id)) return _animations[id];
+        if (_constructedAnimations.ContainsKey((id, target))) return _constructedAnimations[(id, target)];
+        if (!_animationsToConstruct.ContainsKey(id)) return null;
 
-        Entity entity = mApi.World.GetEntityById(target.EntityId);
+        Entity entity = _api.World.GetEntityById(target.EntityId);
         if (entity == null) return null;
-        AnimationData data = AnimationData.Entity(mAnimationsToConstruct[id].Code, entity, mAnimationsToConstruct[id].Cyclic);
+        AnimationData data = AnimationData.Entity(_animationsToConstruct[id].Code, entity, _animationsToConstruct[id].Cyclic);
         if (data.Shape == null) return null;
-        IAnimation? animation = ConstructAnimation(mApi, id, data, data.Shape);
+        IAnimation? animation = ConstructAnimation(_api, id, data, data.Shape);
         if (animation == null) return null;
-        mConstructedAnimations.Add((id, target), animation);
-        return mConstructedAnimations[(id, target)];
+        _constructedAnimations.Add((id, target), animation);
+        return _constructedAnimations[(id, target)];
     }
 
     private int mConstructedAnimationsCounter = 0;
@@ -588,10 +588,10 @@ internal class AnimationProvider
 
         ImGuiNET.ImGui.Begin("Animation manager");
         if (ImGui.Button($"Show animations editor")) mAnimationEditorToggle = true;
-        ImGuiNET.ImGui.Text(string.Format("Registered animations: {0}", mAnimationsToConstruct.Count + mAnimations.Count));
-        ImGuiNET.ImGui.Text(string.Format("Registered pre-constructed animations: {0}", mAnimations.Count));
-        ImGuiNET.ImGui.Text(string.Format("Registered not pre-constructed animations: {0}", mAnimationsToConstruct.Count));
-        ImGuiNET.ImGui.Text(string.Format("Registered constructed animations: {0}", mConstructedAnimations.Count));
+        ImGuiNET.ImGui.Text(string.Format("Registered animations: {0}", _animationsToConstruct.Count + _animations.Count));
+        ImGuiNET.ImGui.Text(string.Format("Registered pre-constructed animations: {0}", _animations.Count));
+        ImGuiNET.ImGui.Text(string.Format("Registered not pre-constructed animations: {0}", _animationsToConstruct.Count));
+        ImGuiNET.ImGui.Text(string.Format("Registered constructed animations: {0}", _constructedAnimations.Count));
         ImGuiNET.ImGui.Text(string.Format($"Constructed animations: {mConstructedAnimationsCounter}"));
         ImGuiNET.ImGui.End();
     }
@@ -606,11 +606,11 @@ internal class AnimationProvider
     private string mJsonOutputValue = "";
     public void AnimationEditor()
     {
-        if (mConstructedAnimations.Count == 0) return;
-        if (mCurrentAnimation >= mConstructedAnimations.Count) mCurrentAnimation = mConstructedAnimations.Count - 1;
+        if (_constructedAnimations.Count == 0) return;
+        if (mCurrentAnimation >= _constructedAnimations.Count) mCurrentAnimation = _constructedAnimations.Count - 1;
 
-        string[] animationIds = mConstructedAnimations.Select(value => $"Animation: {value.Key.Item1}, Target: {value.Key.Item2}").ToArray();
-        IAnimation[] animations = mConstructedAnimations.Select(value => value.Value).ToArray();
+        string[] animationIds = _constructedAnimations.Select(value => $"Animation: {value.Key.Item1}, Target: {value.Key.Item2}").ToArray();
+        IAnimation[] animations = _constructedAnimations.Select(value => value.Value).ToArray();
         string[] requests = mLastRequests.Queue.Select(request => request.ToString()).Reverse().ToArray();
 
         ImGui.Begin($"Animations editor", ref mAnimationEditorToggle);
@@ -682,7 +682,7 @@ internal class AnimationProvider
     {
         float frame = (animation as Animation).CurrentFrame;
         RunParameters runParams = RunParameters.Set(mOverrideFrame ? mCurrentFrameOverride : frame);
-        AnimationTarget target = new(mApi.World.Player.Entity);
+        AnimationTarget target = new(_api.World.Player.Entity);
 
         mManager.Run(target, (animation as Animation).Id, runParams);
         mNewRequestAdded = 0;

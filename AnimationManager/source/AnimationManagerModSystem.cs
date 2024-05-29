@@ -43,6 +43,14 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
         _cameraSettingsManager = new(api);
 
         Patches.AnimatorPatch.Patch(HarmonyID, _manager, api);
+#if DEBUG
+        _animationEditor = new(_manager.mProvider, _manager, api);
+
+
+        api.ModLoader.GetModSystem<VSImGui.ImGuiModSystem>().Draw += DrawEditor;
+        api.Input.RegisterHotKey("amlibEditor", "Animation Manager Lib editor", GlKeys.K, HotkeyType.DevTool);
+        api.Input.SetHotKeyHandler("amlibEditor", combination => ToggleEditor());
+#endif
     }
     public override void StartServerSide(ICoreServerAPI api)
     {
@@ -108,6 +116,27 @@ public class AnimationManagerLibSystem : ModSystem, API.IAnimationManagerSystem
     {
         _manager?.OnFrameHandler(animator, shape, entity, dt);
     }
+
+#if DEBUG
+    private bool _showEditor = false;
+    private AnimationEditor _animationEditor;
+    private bool ToggleEditor()
+    {
+        _showEditor = !_showEditor;
+        return true;
+    }
+    private VSImGui.API.CallbackGUIStatus DrawEditor(float deltaSeconds)
+    {
+        if (!_showEditor) return VSImGui.API.CallbackGUIStatus.Closed;
+
+        if (_animationEditor?.Draw("Animation editor") == false)
+        {
+            _showEditor = false;
+        }
+
+        return VSImGui.API.CallbackGUIStatus.GrabMouse;
+    }
+#endif
 }
 
 public class DebugRenderer : IRenderer

@@ -1,4 +1,5 @@
-﻿using AnimationManagerLib.CollectibleBehaviors;
+﻿using AnimationManagerLib.API;
+using AnimationManagerLib.CollectibleBehaviors;
 using AnimationManagerLib.Integration;
 using HarmonyLib;
 using System;
@@ -6,8 +7,10 @@ using System.Linq;
 using System.Reflection;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Common.Entities;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
+using static OpenTK.Graphics.OpenGL.GL;
 
 namespace AnimationManagerLib.Patches;
 
@@ -26,11 +29,6 @@ internal static class AnimatorPatch
             );
 
         new Harmony(harmonyId).Patch(
-                typeof(EntityAgent).GetMethod("Initialize", AccessTools.all),
-                prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(ReplaceAnimationManagers)))
-            );
-
-        new Harmony(harmonyId).Patch(
                 typeof(EntityShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderColliders)))
             );
@@ -38,6 +36,16 @@ internal static class AnimatorPatch
                 typeof(EntityPlayerShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(RenderCollidersPlayer)))
             );
+
+        new Harmony(harmonyId).Patch(
+                typeof(Vintagestory.API.Common.AnimationManager).GetMethod("OnClientFrame", AccessTools.all),
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(AnimatorPatch.ReplaceAnimator)))
+            );
+
+        /*new Harmony(harmonyId).Patch(
+                typeof(Vintagestory.API.Common.PlayerAnimationManager).GetMethod("OnClientFrame", AccessTools.all),
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(AnimatorPatch), nameof(AnimatorPatch.ReplacePlayerAnimator)))
+            );*/
 
         _manager = manager;
         _coreClientAPI = api;
@@ -47,7 +55,7 @@ internal static class AnimatorPatch
     {
         new Harmony(harmonyId).Unpatch(typeof(EntityShapeRenderer).GetMethod("RenderHeldItem", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("updateEyeHeight", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
-        new Harmony(harmonyId).Unpatch(typeof(EntityPlayer).GetMethod("Initialize", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
+        new Harmony(harmonyId).Unpatch(typeof(Vintagestory.API.Common.AnimationManager).GetMethod("OnClientFrame", AccessTools.all), HarmonyPatchType.Prefix, harmonyId);
 
         new Harmony(harmonyId).Unpatch(typeof(EntityShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all), HarmonyPatchType.Postfix, harmonyId);
         new Harmony(harmonyId).Unpatch(typeof(EntityPlayerShapeRenderer).GetMethod("DoRender3DOpaque", AccessTools.all), HarmonyPatchType.Postfix, harmonyId);
@@ -57,6 +65,7 @@ internal static class AnimatorPatch
     private static ICoreClientAPI? _coreClientAPI;
     private static readonly FieldInfo? _animManager = typeof(Vintagestory.API.Common.EntityPlayer).GetField("animManager", BindingFlags.NonPublic | BindingFlags.Instance);
     private static readonly FieldInfo? _selfFpAnimManager = typeof(Vintagestory.API.Common.EntityPlayer).GetField("selfFpAnimManager", BindingFlags.NonPublic | BindingFlags.Instance);
+    private static readonly FieldInfo? _entity = typeof(Vintagestory.API.Common.AnimationManager).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
 
     private static bool RenderHeldItem(EntityShapeRenderer __instance, float dt, bool isShadowPass, bool right)
     {
@@ -100,70 +109,62 @@ internal static class AnimatorPatch
         return false;
     }
 
-    private static void ReplaceAnimationManagers(EntityAgent __instance)
+    private static void ReplaceAnimator(Vintagestory.API.Common.AnimationManager __instance, float dt)
     {
-        
-        if (__instance is EntityPlayer)
-        {
-            try
-            {
-                Vintagestory.API.Common.AnimationManager animManager = (Vintagestory.API.Common.AnimationManager)_animManager.GetValue(__instance);
-                ProceduralPlayerAnimationManager animManagerReplacer = new(_manager, _coreClientAPI, animManager)
-                {
-                    UseFpAnmations = false
-                };
-                _animManager.SetValue(__instance, animManagerReplacer);
+        EntityAgent? entity = (Entity?)_entity?.GetValue(__instance) as EntityAgent;
 
-                Vintagestory.API.Common.AnimationManager selfFpAnimManager = (Vintagestory.API.Common.AnimationManager)_selfFpAnimManager.GetValue(__instance);
-                ProceduralPlayerAnimationManager selfFpAnimManagerReplacer = new(_manager, _coreClientAPI, selfFpAnimManager);
-                _selfFpAnimManager.SetValue(__instance, selfFpAnimManagerReplacer);
-            }
-            catch (Exception exception)
+        _manager?.OnFrameHandler(__instance, entity, dt);
+
+        ClientAnimator? animator = __instance.Animator as ClientAnimator;
+        if (__instance.Animator is not ProceduralClientAnimator && animator != null && _manager != null)
+        {
+            if (entity != null)
             {
-                _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.");
-                _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityPlayer.\nException: {exception}\n");
+                __instance.Animator = ProceduralClientAnimator.Create(_manager, __instance, animator, entity);
             }
         }
-        else
+    }
+    private static void ReplacePlayerAnimator(Vintagestory.API.Common.PlayerAnimationManager __instance, float dt)
+    {
+        EntityAgent? entity = (Entity?)_entity?.GetValue(__instance) as EntityAgent;
+
+        _manager?.OnFrameHandler(__instance, entity, dt);
+
+        ClientAnimator? animator = __instance.Animator as ClientAnimator;
+        if (__instance.Animator is not ProceduralClientAnimator && animator != null && _manager != null)
         {
-            try
+            if (entity != null)
             {
-                __instance.AnimManager = new ProceduralAnimationManager(_manager, _coreClientAPI, __instance.AnimManager as Vintagestory.API.Common.AnimationManager);
-            }
-            catch (Exception exception)
-            {
-                _coreClientAPI?.Logger.Error($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.");
-                _coreClientAPI?.Logger.VerboseDebug($"[Animation Manager lib] Error on replacing animation managers and animators for EntityAgent.\nException: {exception}\n");
+                __instance.Animator = ProceduralClientAnimator.Create(_manager, __instance, animator, entity);
             }
         }
     }
 
     private static void RenderColliders(EntityShapeRenderer __instance)
     {
+#if DEBUG
         IShaderProgram? currentShader = _coreClientAPI?.Render.CurrentActiveShader;
         currentShader?.Stop();
+#endif
 
-        EntityAgent? agent = GetEntityAgent(__instance);
-        agent?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, agent, __instance);
+        __instance.entity?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, __instance.entity as EntityAgent, __instance);
 
+
+#if DEBUG
         currentShader?.Use();
+#endif
     }
     private static void RenderCollidersPlayer(EntityPlayerShapeRenderer __instance)
     {
+#if DEBUG
         IShaderProgram? currentShader = _coreClientAPI?.Render.CurrentActiveShader;
         currentShader?.Stop();
+#endif
 
-        EntityAgent? agent = GetEntityAgent(__instance);
-        agent?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, agent, __instance);
+        __instance.entity?.GetBehavior<CollidersEntityBehavior>()?.Render(_coreClientAPI, __instance.entity as EntityAgent, __instance);
 
+#if DEBUG
         currentShader?.Use();
+#endif
     }
-
-    private static EntityAgent? GetEntityAgent(EntityShapeRenderer renderer)
-    {
-        return (EntityAgent?)typeof(EntityShapeRenderer)
-            .GetField("eagent", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.GetValue(renderer);
-    }
-
 }

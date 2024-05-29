@@ -2,103 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
 
 namespace AnimationManagerLib.Integration;
-
-internal class ProceduralPlayerAnimationManager : Vintagestory.API.Common.PlayerAnimationManager
-{
-    public ProceduralPlayerAnimationManager(AnimationManager manager, ICoreClientAPI clientApi, Vintagestory.API.Common.AnimationManager previousManager)
-    {
-        api = clientApi;
-        capi = clientApi;
-        Triggers = previousManager.Triggers;
-
-        entity = (Entity?)_managerEntity?.GetValue(previousManager);
-        if (previousManager.Animator != null) Animator = ProceduralClientAnimator.Create(manager, this, previousManager.Animator as ClientAnimator, entity);
-        HeadController = previousManager.HeadController;
-        ActiveAnimationsByAnimCode = previousManager.ActiveAnimationsByAnimCode;
-
-        _manager = manager;
-    }
-
-    public override void OnClientFrame(float dt)
-    {
-        if (base.Animator is ClientAnimator && base.Animator is not ProceduralClientAnimator)
-        {
-            Animator = base.Animator;
-        }
-
-        try
-        {
-            _manager.OnFrameHandler(this, entity, dt);
-            base.OnClientFrame(dt);
-        }
-        catch { }
-    }
-
-    public new IAnimator Animator
-    {
-        get => base.Animator;
-        set
-        {
-            base.Animator = ProceduralClientAnimator.Create(_manager, this, value as ClientAnimator, entity);
-        }
-    }
-
-    private static readonly FieldInfo? _managerEntity = typeof(Vintagestory.API.Common.AnimationManager).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
-    private readonly AnimationManager _manager;
-}
-
-internal class ProceduralAnimationManager : Vintagestory.API.Common.AnimationManager
-{
-    public ProceduralAnimationManager(AnimationManager manager, ICoreClientAPI clientApi, Vintagestory.API.Common.AnimationManager previousManager)
-    {
-        api = clientApi;
-        capi = clientApi;
-        Triggers = previousManager.Triggers;
-
-        entity = (Entity?)_managerEntity?.GetValue(previousManager);
-        if (previousManager.Animator != null) Animator = ProceduralClientAnimator.Create(manager, this, previousManager.Animator as ClientAnimator, entity);
-        HeadController = previousManager.HeadController;
-        ActiveAnimationsByAnimCode = previousManager.ActiveAnimationsByAnimCode;
-
-        _manager = manager;
-    }
-
-    public override void OnClientFrame(float dt)
-    {
-        if (base.Animator is ClientAnimator && base.Animator is not ProceduralClientAnimator)
-        {
-            Animator = base.Animator;
-        }
-
-        try
-        {
-            _manager.OnFrameHandler(this, entity, dt);
-            base.OnClientFrame(dt);
-        }
-        catch { }
-    }
-
-    public new IAnimator Animator
-    {
-        get => base.Animator;
-        set
-        {
-            base.Animator = ProceduralClientAnimator.Create(_manager, this, value as ClientAnimator, entity);
-        }
-    }
-
-    private static readonly FieldInfo? _managerEntity = typeof(Vintagestory.API.Common.AnimationManager).GetField("entity", BindingFlags.NonPublic | BindingFlags.Instance);
-    private readonly AnimationManager _manager;
-}
-
-
 
 internal class ProceduralClientAnimator : ClientAnimator
 {
@@ -184,7 +93,7 @@ internal class ProceduralClientAnimator : ClientAnimator
     }
 
     protected override void calculateMatrices(float dt)
-    {
+    {        
         if (!base.CalculateMatrices)
         {
             return;
@@ -218,17 +127,6 @@ internal class ProceduralClientAnimator : ClientAnimator
             Mat4f.Identity(tmp);
 
             CalculateMatrices(num, dt, RootPoses, weightsByAnimationAndElement[0], Mat4f.Create(), frameByDepthByAnimation[0], nextFrameTransformsByAnimation[0], 0);
-
-            #region Colliders
-            /*if (_colliders != null && _entity != null)
-            {
-                foreach ((_, ShapeElementCollider collider) in _colliders.Colliders)
-                {
-                    collider.Transform(TransformationMatrices4x3, _entity.Api as ICoreClientAPI);
-                }
-                _colliders.CalculateBoundingBox();
-            }*/
-            #endregion
 
             for (int j = 0; j < GlobalConstants.MaxAnimatedElements; j++)
             {

@@ -505,7 +505,7 @@ public struct AnimationId
     public int Hash { get; private set; }
     public Category Category { get; private set; }
 
-    private readonly string _debugName;
+    internal readonly string _debugName;
 
     public AnimationId(Category category, string name)
     {
