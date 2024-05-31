@@ -31,51 +31,6 @@
 	},
 	{ 
 		"side": "Server", 
-		"file": "game:entities/land/drifter", 
-		"op": "add", 
-		"path": "/client/behaviors/0", 
-		"value": { 
-			"code": "animationmanagerlib:colliders",
-			"colliderShapeElementsByType": {
-				"*-double-headed": [
-					"Body",
-					"Kupris",
-					"Neck 1",
-					"Head 1",
-					"Neck 2",
-					"Head 2",
-					"Extra neck",
-					"Extra head",
-					"Abdomen",
-					"L thigh",
-					"R thigh",
-					"L shoulder",
-					"R shoulder",
-					"L lower arm",
-					"R lower arm",
-					"L feet",
-					"R feet"
-				],
-				"*": [
-					"Head",
-					"Body",
-					"Kupris",
-					"Neck",
-					"Abdomen",
-					"L thigh",
-					"R thigh",
-					"L shoulder",
-					"R shoulder",
-					"L lower arm",
-					"R lower arm",
-					"L feet",
-					"R feet"
-				]
-			}
-		}
-	},
-	{ 
-		"side": "Server", 
 		"file": "game:entities/land/bell", 
 		"op": "add", 
 		"path": "/client/behaviors/0", 
@@ -90,11 +45,25 @@
 				"S tip",
 				"E",
 				"E tip",
+				"verebrae 1",
+				"verebrae 2",
+				"verebrae 3",
+				"verebrae 4",
+				"verebrae 5",
 				"verebrae 6",
+				"verebrae 7",
+				"verebrae 8",
 				"funnel 1",
 				"funnel 2",
-				"top"
+				"top",
+				"stone"
 			]
+			"elementsTypes": {
+			"Torso": ["N", "N tip", "W", "W tip", "S", "S tip", "E", "E tip", "top"],
+			"Head": ["verebrae 1", "verebrae 2", "verebrae 3", "verebrae 4", "verebrae 5", "verebrae 6", "verebrae 7", "verebrae 8"],
+			"Leg": [],
+			"Arm": ["funnel 1", "funnel 2"],
+			"Critical": ["stone"]
 		}
 	},
 	{ 
@@ -116,7 +85,14 @@
 				"R back feet",
 				"L back feet",
 				"mouth"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "shoulder", "abdomen"],
+			"Head": ["head", "cheeks", "mouth"],
+			"Leg": ["R front feet", "L front feet", "R back feet", "L back feet"],
+			"Arm": [],
+			"Critical": ["neck"]
+		}
 		}
 	},
 	{ 
@@ -138,7 +114,14 @@
 				"LowerFootR",
 				"UpperFootR",
 				"UpperFootL"
-			]
+			],
+			"elementsTypes": {
+			"Torso": [],
+			"Head": [],
+			"Leg": [],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -161,6 +144,13 @@
 				"UpperFootR",
 				"UpperFootL"
 			]
+			"elementsTypes": {
+			"Torso": [],
+			"Head": [],
+			"Leg": [],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -173,7 +163,14 @@
 			"colliderShapeElements": [
 				"body",
 				"head"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body"],
+			"Head": ["head"],
+			"Leg": [],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -188,7 +185,14 @@
 				"throat",
 				"head",
 				"tail"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body"],
+			"Head": ["head", "throat"],
+			"Leg": [],
+			"Arm": ["tail"],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -205,7 +209,14 @@
 				"L back feather",
 				"feather6",
 				"feather7"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body"],
+			"Head": ["head"],
+			"Leg": ["L back feather"],
+			"Arm": ["feather6", "feather7"],
+			"Critical": ["neck"]
+		}
 		}
 	},
 	{ 
@@ -225,7 +236,14 @@
 				"R back feet",
 				"left front feet",
 				"right front feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": ["L back feet", "R back feet", "left front feet", "right front feet"],
+			"Arm": ["tail end"],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -245,7 +263,14 @@
 				"R back feet",
 				"left front feet",
 				"right front feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": ["L back feet", "R back feet", "left front feet", "right front feet"],
+			"Arm": ["tail end"],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -269,7 +294,14 @@
 				"L back Upper Arm",
 				"L back lower arm",
 				"R back lower arm"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body", "abdomen"],
+			"Head": ["head", "mouth", "mouth-up"],
+			"Leg": ["L front Upper Arm", "R front Upper Arm", "L front lower arm", "R front lower arm", "R back Upper Arm", "L back Upper Arm", "L back lower arm", "R back lower arm"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -293,7 +325,14 @@
 				"L back Upper Arm",
 				"L back lower arm",
 				"R back lower arm"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body", "abdomen"],
+			"Head": ["head", "mouth-up"],
+			"Leg": ["L front Upper Arm", "R front Upper Arm", "L front lower arm", "R front lower arm", "R back Upper Arm", "L back Upper Arm", "L back lower arm", "R back lower arm"],
+			"Arm": [],
+			"Critical": ["neck2"]
+		}
 		}
 	},
 	{ 
@@ -317,7 +356,14 @@
 				"L back Upper Arm",
 				"L back lower arm",
 				"R back lower arm"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body", "abdomen"],
+			"Head": ["head", "mouth-up"],
+			"Leg": ["L front Upper Arm", "R front Upper Arm", "L front lower arm", "R front lower arm", "R back Upper Arm", "L back Upper Arm", "L back lower arm", "R back lower arm"],
+			"Arm": [],
+			"Critical": ["neck2"]
+		}
 		}
 	},
 	{ 
@@ -330,7 +376,14 @@
 			"colliderShapeElements": [
 				"grub1",
 				"grub1tail"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["grub1"],
+			"Head": [],
+			"Leg": ["grub1tail"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -344,7 +397,14 @@
 				"body",
 				"head",
 				"abdomen"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head"],
+			"Leg": [],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -359,7 +419,14 @@
 				"head",
 				"abdomen",
 				"mouth"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": [],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -374,7 +441,14 @@
 				"head",
 				"abdomen",
 				"mouth"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": [],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -394,7 +468,14 @@
 				"R back feet",
 				"L front feet",
 				"R front feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": ["L back feet", "R back feet", "L front feet", "R front feet"],
+			"Arm": [],
+			"Critical": ["neck"]
+		}
 		}
 	},
 	{ 
@@ -414,7 +495,14 @@
 				"R back feet",
 				"L front feet",
 				"R front feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": ["L back feet", "R back feet", "L front feet", "R front feet"],
+			"Arm": [],
+			"Critical": ["neck"]
+		}
 		}
 	},
 	{ 
@@ -433,7 +521,14 @@
 				"R back feet",
 				"L front feet",
 				"R front feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth up"],
+			"Leg": ["L back feet", "R back feet", "L front feet", "R front feet"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -447,7 +542,6 @@
 				"abdomen",
 				"body",
 				"drill",
-				"abdomen",
 				"mouth",
 				"leg extention 3",
 				"leg extention 18",
@@ -460,7 +554,14 @@
 				"top",
 				"funnel1",
 				"funnel2"				
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen", "N", "S", "W", "E"],
+			"Head": ["mouth", "top"],
+			"Leg": ["leg extention 3", "leg extention 18", "L front feet", "R front feet"],
+			"Arm": ["funnel1", "funnel2"],
+			"Critical": ["drill"]
+		}
 		}
 	},
 	{ 
@@ -479,7 +580,14 @@
 				"leg extention 15",
 				"leg extention 18",
 				"leg extention 21"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": [],
+			"Leg": ["leg extention 1", "leg extention 3", "leg extention 5", "leg extention 15", "leg extention 18", "leg extention 21"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -498,7 +606,14 @@
 				"leg extention 15",
 				"leg extention 18",
 				"leg extention 21"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": [],
+			"Leg": ["leg extention 1", "leg extention 3", "leg extention 5", "leg extention 15", "leg extention 18", "leg extention 21"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -520,7 +635,14 @@
 				"segment 3",
 				"segment 5",
 				"segment 6"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body"],
+			"Head": [],
+			"Leg": ["leg extention 1", "leg extention 3", "leg extention 5", "leg extention 15", "leg extention 18", "leg extention 21"],
+			"Arm": ["segment 1", "segment 3", "segment 5", "segment 6"],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -538,7 +660,14 @@
 				"L front feet",
 				"R back feet",
 				"L back feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body"],
+			"Head": ["head"],
+			"Leg": ["R front feet", "L front feet", "R back feet", "L back feet"],
+			"Arm": [],
+			"Critical": ["neck"]
+		}
 		}
 	},
 	{ 
@@ -557,7 +686,14 @@
 				"L front feet",
 				"R back feet",
 				"L back feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body"],
+			"Head": ["head", "cheeks"],
+			"Leg": ["R front feet", "L front feet", "R back feet", "L back feet"],
+			"Arm": [],
+			"Critical": ["neck"]
+		}
 		}
 	},
 	{ 
@@ -575,7 +711,14 @@
 				"L front feet",
 				"R back feet",
 				"L back feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body"],
+			"Head": ["nose", "head"],
+			"Leg": ["R front feet", "L front feet", "R back feet", "L back feet"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -595,7 +738,14 @@
 				"R back feet",
 				"L back feet",
 				"tail end"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": ["R front feet", "L front feet", "R back feet", "L back feet"],
+			"Arm": ["tail end"],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -615,7 +765,14 @@
 				"R back feet",
 				"L back feet",
 				"tail end"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": ["R front feet", "L front feet", "R back feet", "L back feet"],
+			"Arm": ["tail end"],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -635,7 +792,14 @@
 				"R back feet",
 				"L back feet",
 				"tail end"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": ["R front feet", "L front feet", "R back feet", "L back feet"],
+			"Arm": ["tail end"],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -653,7 +817,14 @@
 				"L front foot",
 				"R back foot",
 				"L back foot"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body"],
+			"Head": ["head", "mouth up"],
+			"Leg": ["R front foot", "L front foot", "R back foot", "L back foot"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -673,7 +844,14 @@
 				"L front foot",
 				"R back foot",
 				"L back foot"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body", "R horn base", "L horn base20"],
+			"Head": ["head", "mouth up"],
+			"Leg": ["R front foot", "L front foot", "R back foot", "L back foot"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -691,7 +869,14 @@
 				"L front foot",
 				"R back foot",
 				"L back foot"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body"],
+			"Head": ["head", "mouth"],
+			"Leg": ["R front foot", "L front foot", "R back foot", "L back foot"],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -706,7 +891,14 @@
 				"upper body",
 				"hands",
 				"Head"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "upper body", "hands", "Head"],
+			"Head": [],
+			"Leg": [],
+			"Arm": [],
+			"Critical": []
+		}
 		}
 	},
 	{ 
@@ -727,7 +919,14 @@
 				"right leg end",
 				"right leg back end",
 				"left leg back end"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body", "abdomen"],
+			"Head": ["head", "mouth up"],
+			"Leg": ["left leg end", "right leg end", "right leg back end", "left leg back end"],
+			"Arm": ["tail end"],
+			"Critical": ["neck"]
+		}
 		}
 	},
 	{ 
@@ -748,7 +947,14 @@
 				"right leg end",
 				"right leg back end",
 				"left leg back end"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["Body", "abdomen"],
+			"Head": ["head", "mouth up"],
+			"Leg": ["left leg end", "right leg end", "right leg back end", "left leg back end"],
+			"Arm": ["tail end"],
+			"Critical": ["neck"]
+		}
 		}
 	},
 	{ 
@@ -769,7 +975,14 @@
 				"L front feet",
 				"R back feet",
 				"L back feet"
-			]
+			],
+			"elementsTypes": {
+			"Torso": ["body", "abdomen"],
+			"Head": ["head", "mouth"],
+			"Leg": ["R front feet", "L front feet", "R back feet", "L back feet"],
+			"Arm": ["tail end"],
+			"Critical": ["neck"]
+		}
 		}
 	}
 ]
