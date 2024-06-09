@@ -1,0 +1,131 @@
+[
+	{ 
+		"side": "Server", 
+		"file": "game:entities/land/drifter", 
+		"op": "add", 
+		"path": "/client/behaviors/0", 
+		"value": { 
+			"code": "animationmanagerlib:colliders",
+			"colliderShapeElementsByType": {
+			"*-corrupt": [
+				"Body",
+				"Abdomen",
+				"L thigh",
+				"R thigh",
+				"Neck",
+				"Head",
+				"L shoulder",
+				"R shoulder",
+				"L lower arm",
+				"R lower arm"
+			],
+			"*-double-headed": [
+				"Body",
+				"Abdomen",
+				"L thigh",
+				"R thigh",
+				"Extra neck",
+				"Head 1",
+				"Head 2",
+				"L shoulder",
+				"R shoulder",
+				"L lower arm",
+				"R lower arm"
+			],
+			"*-nightmare": [
+				"Body",
+				"Abdomen",
+				"L thigh",
+				"R thigh",
+				"Neck",
+				"Head",
+				"Kupris",
+				"L shoulder",
+				"R shoulder",
+				"L lower arm",
+				"R lower arm"
+			],
+			"*-normal": [
+				"Body",
+				"Abdomen",
+				"L thigh",
+				"R thigh",
+				"Neck",
+				"Head",
+				"L shoulder",
+				"R shoulder",
+				"L lower arm",
+				"R lower arm"
+			],
+			"*-deep": [
+				"Body",
+				"Abdomen",
+				"L thigh",
+				"R thigh",
+				"Neck",
+				"Head",
+				"L shoulder",
+				"R shoulder",
+				"L lower arm",
+				"R lower arm"
+			],
+			"*-tainted": [
+				"Body",
+				"Abdomen",
+				"L thigh",
+				"R thigh",
+				"Neck",
+				"Head",
+				"L shoulder",
+				"R shoulder",
+				"midsection",
+				"L lower arm",
+				"R upper arm"
+			]
+			},
+			"elementsTypesByType": {
+			"*-corrupt": {
+			"Torso": ["Body", "Abdomen"],
+			"Head": ["Head"],
+			"Arm": ["L shoulder", "R shoulder", "L lower arm", "R lower arm"],
+			"Leg": ["L thigh", "R thigh"],
+			"Critical": ["Neck"]
+			},
+			"*-double-headed": {
+			"Torso": ["Body", "Abdomen"],
+			"Head": ["Head 1", "Head 2"],
+			"Arm": ["L shoulder", "R shoulder", "L lower arm", "R lower arm"],
+			"Leg": ["L thigh", "R thigh"],
+			"Critical": ["Extra Neck"]
+			},
+			"*-nightmare": {
+			"Torso": ["Body", "Abdomen"],
+			"Head": ["Head", "Kupris"],
+			"Arm": ["L shoulder", "R shoulder", "L lower arm", "R lower arm"],
+			"Leg": ["L thigh", "R thigh"],
+			"Critical": ["Neck"]
+			},
+			"*-normal": {
+			"Torso": ["Body", "Abdomen", "midsection"],
+			"Head": ["Head"],
+			"Arm": ["L shoulder", "R shoulder", "L lower arm", "R lower arm"],
+			"Leg": ["L thigh", "R thigh"],
+			"Critical": ["Neck"]
+			},
+			"*-deep": {
+			"Torso": ["Body", "Abdomen", "midsection"],
+			"Head": ["Head"],
+			"Arm": ["L shoulder", "R shoulder", "L lower arm", "R lower arm"],
+			"Leg": ["L thigh", "R thigh"],
+			"Critical": ["Neck"]
+			},
+			"*-tainted": {
+			"Torso": ["Body", "Abdomen", "midsection"],
+			"Head": ["Head"],
+			"Arm": ["L shoulder", "R shoulder", "L lower arm", "R lower arm"],
+			"Leg": ["L thigh", "R thigh"],
+			"Critical": ["Neck"]
+			}}
+		}
+	}
+]
